@@ -1,16 +1,18 @@
-package server;
-
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Scanner;
 
+import thread.ServerThread;
 
-public class Server {
-	
-	public Server() {
+public class myCloudServer {
+
+	public static void main(String[] args) {
+		System.out.println("Server connected");
+		myCloudServer server = new myCloudServer();
+		server.startServer();
 	}
-
+	
 	public void startServer() {
 		ServerSocket sSoc = null;
 		Scanner scanner = new Scanner(System.in);

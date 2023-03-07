@@ -5,7 +5,7 @@ import java.net.Socket;
 public class ServerThread extends Thread {
 	
 	//Server socket
-	private Socket socket = null;
+	public Socket socket = null;
 	
 	//Thread server for each client
 	public ServerThread(Socket inSoc) {
@@ -16,6 +16,13 @@ public class ServerThread extends Thread {
 	public void run(){
 		System.out.println("Teste");
 		
+	}
+	
+	public void receive() {
+		
+	}
+	
+	public void send() {
 		
 	}
 }
