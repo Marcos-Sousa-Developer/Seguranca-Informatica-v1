@@ -10,7 +10,7 @@ public class ServerThread extends Thread {
 	//Thread server for each client
 	public ServerThread(Socket inSoc) {
 		socket = inSoc;
-		System.out.println("thread do server para cada cliente");
+		//System.out.println("thread do server para cada cliente");
 	}
 	
 	public void run(){
