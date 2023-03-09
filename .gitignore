@@ -33,6 +33,7 @@ local.properties
 .factorypath
 
 # PDT-specific (PHP Development Tools)
+.classpath
 .buildpath
 
 # sbteclipse plugin
