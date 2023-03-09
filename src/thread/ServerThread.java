@@ -30,14 +30,11 @@ public class ServerThread extends Thread {
 			ObjectOutputStream outStream = new ObjectOutputStream(socket.getOutputStream());
 			outStream.writeObject("Recebido");
 		
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
+		} catch (IOException | ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 	}
 	
 	public void receive() {

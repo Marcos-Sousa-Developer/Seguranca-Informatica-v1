@@ -9,10 +9,10 @@ import java.util.List;
 
 public class CommandC {
 	
-	private String ip;
-	private int port;
+	private final String ip;
+	private final int port;
 	private List<String> files;
-	private String option;
+	private final String option;
 
 	public CommandC(String ip, int port, List<String> files, String option) {
 		this.ip = ip;

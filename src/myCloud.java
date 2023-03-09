@@ -49,23 +49,28 @@ public class myCloud {
 		String[] address = verifyCommand(args);
 		
 		List<String> files = new ArrayList<>(Arrays.asList(args)).subList(3, args.length);
-		
-		if (args[2].equals("-c")) {
-			 
-             new CommandC(address[0], Integer.parseInt(address[1]), files, "-c").sendToServer();
-			 
-        } else if (args[2].equals("-s")) {
-        	 
-             //method
-        	 
-        } else if (args[2].equals("-e")) {
-        	 
-             //method
-        	 
-        } else if (args[2].equals("-g")) {
-        	 
-             //method
-  
-        }
+
+		switch (args[2]) {
+			case "-c":
+
+				new CommandC(address[0], Integer.parseInt(address[1]), files, "-c").sendToServer();
+
+				break;
+			case "-s":
+
+				//method
+
+				break;
+			case "-e":
+
+				//method
+
+				break;
+			case "-g":
+
+				//method
+
+				break;
+		}
 	}
 }
