@@ -33,47 +33,65 @@ public class ServerThread extends Thread {
 				
 				for (int i = 0; i < filesDim; i++) {
 					
-					String fileName = (String) inStream.readObject();	//está a dar erro
-					System.out.println(fileName);
+					//---------------Receber Ficheiro Cifrado----------------------
 					
-//                  FileOutputStream outFileStream = new FileOutputStream("../cloud/files/teste.txt");
-//                  BufferedOutputStream outFile = new BufferedOutputStream(outFileStream);
+					String fileNameCif = (String) inStream.readObject();
+					System.out.println(fileNameCif);
+					
+					FileOutputStream outFileStreamCif = new FileOutputStream("../cloud/files/" + fileNameCif);
+					BufferedOutputStream outFileCif = new BufferedOutputStream(outFileStreamCif);
+					
+					try{
+						Long fileSizeCif = (Long)inStream.readObject();
+						System.out.println(fileSizeCif);
+						
+						byte[] bufferCif = new byte[1024];
+						int xCif = 0;
+						int tempCif = fileSizeCif.intValue();
+						
+						while(tempCif > 0){
+							xCif = inStream.read(bufferCif, 0, tempCif > 1024 ? 1024 : tempCif);
+							outFileCif.write(bufferCif, 0, xCif);
+							tempCif -= xCif;
+						}
+						System.out.println(outFileCif.toString());
 
-//					try{
-//						
-//						Long fileSize = (Long)inStream.readObject();
-//
-//						byte[] buffer = new byte[1024];
-//
-//						int x = 0;
-//
-//						int temp = fileSize.intValue();
-//
-//						while(temp > 0){
-//							x = inStream.read(buffer, 0, temp > 1024 ? 1024 : temp);
-//							outFile.write(buffer, 0, x);
-//							temp -= x;
-//						}
-//						System.out.println(outFile.toString());
-//
-//					} catch (ClassNotFoundException e1) {
-//						e1.printStackTrace();
-//					}
-//
-//					outFile.close();
-					inStream.close();
-					socket.close();
+					} catch (ClassNotFoundException e1) {
+						e1.printStackTrace();
+					}
+					outFileCif.close();
 					
 					
+					//---------------Receber Chave Cifrada----------------------
 					
+					String fileNameKey = (String) inStream.readObject();
+					System.out.println(fileNameKey);
 					
+					FileOutputStream outFileStreamKey = new FileOutputStream("../cloud/keys/" + fileNameKey);
+					BufferedOutputStream outFileKey = new BufferedOutputStream(outFileStreamKey);
+					
+					try{
+						Long fileSizeKey = (Long)inStream.readObject();
+						System.out.println(fileSizeKey);
+						
+						byte[] bufferKey = new byte[1024];
+						int xKey = 0;
+						int tempKey = fileSizeKey.intValue();
+						
+						while(tempKey > 0){
+							xKey = inStream.read(bufferKey, 0, tempKey > 1024 ? 1024 : tempKey);
+							outFileKey.write(bufferKey, 0, xKey);
+							tempKey -= xKey;
+						}
+						System.out.println(outFileKey.toString());
+
+					} catch (ClassNotFoundException e1) {
+						e1.printStackTrace();
+					}
+					outFileKey.close();
+
 				}
-				//receber os filheiros cifrados
-				//guardar na pasta cloud/files com extensão .cifrado
-				//receber as keys
-				//guardar na pasta cloud/files com extensão .chave_secreta
 				//dar erro caso o ficheiro já exista no servidor
-				//
 				
 			} else if (option.equals("-s")) {
 				
@@ -81,12 +99,10 @@ public class ServerThread extends Thread {
 				
 			} else if (option.equals("-g")) {
 				
-			} else {
-				
-			}
-
-			ObjectOutputStream outStream = new ObjectOutputStream(socket.getOutputStream());
-			outStream.writeObject("Recebido");
+			} 
+			
+			inStream.close();
+			this.socket.close();
 		
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -95,7 +111,6 @@ public class ServerThread extends Thread {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
 	}
 	
 	public void receive() {
