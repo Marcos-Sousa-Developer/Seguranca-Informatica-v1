@@ -13,14 +13,24 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.InvalidKeyException;
+import java.security.Key;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
 import java.util.List;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherOutputStream;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 public class CommandC {
 	
@@ -63,24 +73,53 @@ public class CommandC {
 	    fis.close();
 
 	    byte[] keyEncoded = key.getEncoded();
-	    FileOutputStream kos = new FileOutputStream("../files/" + fileName + ".chave_secreta");
-	    
-	    
-	    
-	    //Falta cifrar a key
-	    
-	    
-	    
+	    FileOutputStream kos = new FileOutputStream("../files/" + fileName + ".key");
 	    
 	    kos.write(keyEncoded);
 	    kos.close();
 	}
+	
 
-	public void cipherKey(String fileName) {
-		
+	public void cipherKey(String fileName) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableKeyException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException {
+		FileInputStream kfile = new FileInputStream("keystore.maria"); 
+	    KeyStore kstore = KeyStore.getInstance("PKCS12");
+	    kstore.load(kfile, "si027marcos&rafael".toCharArray());
+	    
+	    String alias = "maria";
+	    
+	    Key key = kstore.getKey(alias, "si027marcos&rafael".toCharArray());
+	    
+	    if(key instanceof PrivateKey) {
+	    	
+	    	Certificate cert = kstore.getCertificate("maria");
+	    	
+	    	PublicKey publicKey =cert.getPublicKey();
+	    
+		    Cipher cRSA = Cipher.getInstance("RSA");
+		    
+		    cRSA.init(Cipher.WRAP_MODE, publicKey);
+		    
+		    FileInputStream kis = new FileInputStream("../files/" + fileName + ".key");
+		    
+		    byte[] keyEncoded = new byte [kis.available()];
+		    
+		    kis.read(keyEncoded);
+		    kis.close();
+		    
+		    SecretKey keyAES = new SecretKeySpec(keyEncoded,"AES");
+		    
+		    byte [] chaveAEScifrada = cRSA.wrap(keyAES);
+		    
+		    FileOutputStream kos = new FileOutputStream("../files/" + fileName + ".chave_secreta");
+		    
+		    kos.write(chaveAEScifrada);
+		    
+		    kos.close();
+		    }
 	}
 	
-	public void sendToServer() throws UnknownHostException, IOException, ClassNotFoundException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException {
+	
+	public void sendToServer() throws UnknownHostException, IOException, ClassNotFoundException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, UnrecoverableKeyException, KeyStoreException, CertificateException, IllegalBlockSizeException {
 		
 		Socket socket = new Socket(this.ip, this.port);
 		
@@ -89,10 +128,12 @@ public class CommandC {
 		outStream.writeObject(this.files.size());
 		
 		for (String fileName : this.files) {
-
-			//---------------Enviar Ficheiro Cifrado----------------------
 			
 			cipherFile(fileName);
+			
+			cipherKey(fileName);
+
+			//---------------Enviar Ficheiro Cifrado----------------------
 			
 			File fileCif = new File("../files/" + fileName + ".cifrado");
 	        Long dimFileCif = fileCif.length();
@@ -107,7 +148,6 @@ public class CommandC {
 	            outStream.write(bufferFileCif, 0, xCif);
 	        }
 	        myFileCif.close();
-	        
 	        
 	      //---------------Enviar Chave Cifrada----------------------
 	        
