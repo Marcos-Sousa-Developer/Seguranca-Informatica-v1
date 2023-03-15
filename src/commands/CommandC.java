@@ -81,17 +81,17 @@ public class CommandC {
 	
 
 	public void cipherKey(String fileName) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableKeyException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException {
-		FileInputStream kfile = new FileInputStream("keystore.maria"); 
+		FileInputStream kfile = new FileInputStream("keystore.si027"); 
 	    KeyStore kstore = KeyStore.getInstance("PKCS12");
 	    kstore.load(kfile, "si027marcos&rafael".toCharArray());
 	    
-	    String alias = "maria";
+	    String alias = "si027";
 	    
 	    Key key = kstore.getKey(alias, "si027marcos&rafael".toCharArray());
 	    
 	    if(key instanceof PrivateKey) {
 	    	
-	    	Certificate cert = kstore.getCertificate("maria");
+	    	Certificate cert = kstore.getCertificate("si027");
 	    	
 	    	PublicKey publicKey =cert.getPublicKey();
 	    
@@ -129,42 +129,53 @@ public class CommandC {
 		
 		for (String fileName : this.files) {
 			
-			cipherFile(fileName);
+			 //Caso algum dos ficheiros já exista no servidor 
+			 // ou caso algum dos ficheiros não exista localmente, 
+			 //apresenta uma mensagem de erro ao 
+			 //utilizador e continua para os seguintes ficheiros.
 			
-			cipherKey(fileName);
+			try {
+				cipherFile(fileName);
+				cipherKey(fileName);
+				
+				//---------------Enviar Ficheiro Cifrado----------------------
+				
+				File fileCif = new File("../files/" + fileName + ".cifrado");
+		        Long dimFileCif = fileCif.length();
+		        
+		        outStream.writeObject(fileName + ".cifrado");
+		        outStream.writeObject(dimFileCif);
+		        
+		        BufferedInputStream myFileCif = new BufferedInputStream(new FileInputStream("../files/" + fileName + ".cifrado"));
+		        byte[] bufferFileCif = new byte[1024];
+		        int xCif = 0;
+		        while((xCif = myFileCif.read(bufferFileCif, 0, 1024)) > 0){
+		            outStream.write(bufferFileCif, 0, xCif);
+		        }
+		        myFileCif.close();
+		        
+		      //---------------Enviar Chave Cifrada----------------------
+		        
+		        File keyCif = new File("../files/" + fileName + ".chave_secreta");
+		        Long dimKeyCif = keyCif.length();
+		        
+		        outStream.writeObject(fileName + ".chave_secreta");
+		        outStream.writeObject(dimKeyCif);
+		        
+		        BufferedInputStream myKeyCif = new BufferedInputStream(new FileInputStream("../files/" + fileName + ".chave_secreta"));
+		        byte[] bufferKeyCif = new byte[1024];
+		        int xKey = 0;
+		        while((xKey = myKeyCif.read(bufferKeyCif, 0, 1024)) > 0){
+		            outStream.write(bufferKeyCif, 0, xKey);
+		        }
+		        myKeyCif.close();
+		        
+		        System.out.println("The file " + fileName + " have been sent correctly.");
 
-			//---------------Enviar Ficheiro Cifrado----------------------
-			
-			File fileCif = new File("../files/" + fileName + ".cifrado");
-	        Long dimFileCif = fileCif.length();
-	        
-	        outStream.writeObject(fileName + ".cifrado");
-	        outStream.writeObject(dimFileCif);
-	        
-	        BufferedInputStream myFileCif = new BufferedInputStream(new FileInputStream("../files/" + fileName + ".cifrado"));
-	        byte[] bufferFileCif = new byte[1024];
-	        int xCif = 0;
-	        while((xCif = myFileCif.read(bufferFileCif, 0, 1024)) > 0){
-	            outStream.write(bufferFileCif, 0, xCif);
-	        }
-	        myFileCif.close();
-	        
-	      //---------------Enviar Chave Cifrada----------------------
-	        
-	        File keyCif = new File("../files/" + fileName + ".chave_secreta");
-	        Long dimKeyCif = keyCif.length();
-	        
-	        outStream.writeObject(fileName + ".chave_secreta");
-	        outStream.writeObject(dimKeyCif);
-	        
-	        BufferedInputStream myKeyCif = new BufferedInputStream(new FileInputStream("../files/" + fileName + ".chave_secreta"));
-	        byte[] bufferKeyCif = new byte[1024];
-	        int xKey = 0;
-	        while((xKey = myKeyCif.read(bufferKeyCif, 0, 1024)) > 0){
-	            outStream.write(bufferKeyCif, 0, xKey);
-	        }
-	        myKeyCif.close();
-    	}
+			} catch (FileNotFoundException error) {
+				System.err.println("The file " + fileName + " doesn't exist. You must provide a existing file.");
+			}
+		}
 
 		outStream.close();
 		socket.close();
