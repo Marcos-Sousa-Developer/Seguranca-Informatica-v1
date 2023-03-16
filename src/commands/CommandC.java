@@ -124,59 +124,69 @@ public class CommandC {
 		Socket socket = new Socket(this.ip, this.port);
 		
 		ObjectOutputStream outStream = new ObjectOutputStream(socket.getOutputStream());
+		ObjectInputStream inStream = new ObjectInputStream(socket.getInputStream());
 		outStream.writeObject(this.option);
 		outStream.writeObject(this.files.size());
 		
 		for (String fileName : this.files) {
 			
-			 //Caso algum dos ficheiros já exista no servidor 
-			 // ou caso algum dos ficheiros não exista localmente, 
-			 //apresenta uma mensagem de erro ao 
-			 //utilizador e continua para os seguintes ficheiros.
+			File f = new File("../files/" + fileName);
 			
-			try {
-				cipherFile(fileName);
-				cipherKey(fileName);
+			Boolean fileExistClient = f.exists();
+			
+			if(fileExistClient) {
+				outStream.writeObject(fileExistClient);
+				outStream.writeObject(fileName);
 				
-				//---------------Enviar Ficheiro Cifrado----------------------
+				Boolean fileExistServer = (Boolean) inStream.readObject();
 				
-				File fileCif = new File("../files/" + fileName + ".cifrado");
-		        Long dimFileCif = fileCif.length();
-		        
-		        outStream.writeObject(fileName + ".cifrado");
-		        outStream.writeObject(dimFileCif);
-		        
-		        BufferedInputStream myFileCif = new BufferedInputStream(new FileInputStream("../files/" + fileName + ".cifrado"));
-		        byte[] bufferFileCif = new byte[1024];
-		        int xCif = 0;
-		        while((xCif = myFileCif.read(bufferFileCif, 0, 1024)) > 0){
-		            outStream.write(bufferFileCif, 0, xCif);
-		        }
-		        myFileCif.close();
-		        
-		      //---------------Enviar Chave Cifrada----------------------
-		        
-		        File keyCif = new File("../files/" + fileName + ".chave_secreta");
-		        Long dimKeyCif = keyCif.length();
-		        
-		        outStream.writeObject(fileName + ".chave_secreta");
-		        outStream.writeObject(dimKeyCif);
-		        
-		        BufferedInputStream myKeyCif = new BufferedInputStream(new FileInputStream("../files/" + fileName + ".chave_secreta"));
-		        byte[] bufferKeyCif = new byte[1024];
-		        int xKey = 0;
-		        while((xKey = myKeyCif.read(bufferKeyCif, 0, 1024)) > 0){
-		            outStream.write(bufferKeyCif, 0, xKey);
-		        }
-		        myKeyCif.close();
-		        
-		        System.out.println("The file " + fileName + " have been sent correctly.");
-
-			} catch (FileNotFoundException error) {
+				if(!fileExistServer) {
+					
+					cipherFile(fileName);
+					cipherKey(fileName);
+					
+					//---------------Enviar Ficheiro Cifrado----------------------
+					
+					File fileCif = new File("../files/" + fileName + ".cifrado");
+			        Long dimFileCif = fileCif.length();
+			        
+			        outStream.writeObject(fileName + ".cifrado");
+			        outStream.writeObject(dimFileCif);
+			        
+			        BufferedInputStream myFileCif = new BufferedInputStream(new FileInputStream("../files/" + fileName + ".cifrado"));
+			        byte[] bufferFileCif = new byte[1024];
+			        int xCif = 0;
+			        while((xCif = myFileCif.read(bufferFileCif, 0, 1024)) > 0){
+			            outStream.write(bufferFileCif, 0, xCif);
+			        }
+			        myFileCif.close();
+			        
+			      //---------------Enviar Chave Cifrada----------------------
+			        
+			        File keyCif = new File("../files/" + fileName + ".chave_secreta");
+			        Long dimKeyCif = keyCif.length();
+			        
+			        outStream.writeObject(fileName + ".chave_secreta");
+			        outStream.writeObject(dimKeyCif);
+			        
+			        BufferedInputStream myKeyCif = new BufferedInputStream(new FileInputStream("../files/" + fileName + ".chave_secreta"));
+			        byte[] bufferKeyCif = new byte[1024];
+			        int xKey = 0;
+			        while((xKey = myKeyCif.read(bufferKeyCif, 0, 1024)) > 0){
+			            outStream.write(bufferKeyCif, 0, xKey);
+			        }
+			        myKeyCif.close();
+			        
+			        System.out.println("The file " + fileName + " have been sent correctly.");
+					
+				} else {
+					System.err.println("The file " + fileName + " already exist in server.");
+				}
+			} else {
+				outStream.writeObject(fileExistClient);
 				System.err.println("The file " + fileName + " doesn't exist. You must provide a existing file.");
 			}
 		}
-
 		outStream.close();
 		socket.close();
 	}
