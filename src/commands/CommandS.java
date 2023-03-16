@@ -18,6 +18,8 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.List;
+import java.io.File;
+
 
 public class CommandS {
 	
@@ -36,6 +38,11 @@ public class CommandS {
 		
 	}
 	
+	private String removeExtension(String fileName){
+		
+		return "";
+		
+	}
 	private Signature assignFile() throws NoSuchAlgorithmException {
 		
 		//Set the signature
@@ -43,10 +50,9 @@ public class CommandS {
 		
 		
 		try {
-
 			
 			//Read the KeyStore File
-			FileInputStream keyStorefile = new FileInputStream("../keystore.si027"); 
+			FileInputStream keyStorefile = new FileInputStream(new File("../src/KeyStore.si027")); 
 			
 			//Alias from set up in KeyStore file
 			String alias = "si027";
@@ -61,11 +67,15 @@ public class CommandS {
 			Key key = kstore.getKey(alias, "si027marcos&rafael".toCharArray()); 
 			
 			//turn key in instance of private key
-			PrivateKey privatekey = (PrivateKey) key;  
+			PrivateKey privatekey = (PrivateKey) key; 
+			
+			System.out.println(privatekey);
 			
 
 			//Encrypted digital assign
 			signature.initSign(privatekey); 
+			
+			System.out.println("init");
 			
 			
 			
@@ -110,6 +120,8 @@ public class CommandS {
 		
 		for (String fileName : this.files) { 
 			
+			
+			
 			//Send the file name
 			outStream.writeObject(fileName);
 			
@@ -129,7 +141,9 @@ public class CommandS {
 			while(contentLength != -1) {
 				//Hash the data
 				signature.update(dataToBytes, 0, contentLength);
+				//send data to server
 				outStream.write(dataToBytes);
+				//continue to read fileInStream
 				contentLength = fileInStream.read();
 			}
 			outStream.writeObject("signature");

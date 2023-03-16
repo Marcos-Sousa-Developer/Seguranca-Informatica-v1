@@ -1,5 +1,6 @@
 package thread;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -118,9 +119,26 @@ public class ServerThread extends Thread {
 		//dar erro caso o ficheiro já exista no servidor
 	}
 	
-	private void verifyCommandS(ObjectInputStream inStream) { 
+	private void verifyCommandS(ObjectInputStream inStream) throws IOException, ClassNotFoundException {  
 		
-		System.out.println("OKOK");
+		String fileName = (String) inStream.readObject(); 
+		
+		//Read hashed sign file 
+		byte[] bufferData = new byte[1024]; 
+		
+		int contentLength = inStream.available(); 
+		
+		while(contentLength != -1) {
+			
+			
+			
+		}
+		
+		//FileOutputStream fileOutputStream = new FileOutputStream(filename);
+		
+		
+		
+		
 		
 	}
 	
