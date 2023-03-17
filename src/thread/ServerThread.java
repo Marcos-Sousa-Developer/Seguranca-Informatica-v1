@@ -2,6 +2,9 @@ package thread;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -21,17 +24,16 @@ public class ServerThread extends Thread {
 		//System.out.println("thread do server para cada cliente");
 	}
 	
-	public void run(){
-		System.out.println("Teste");
-		
+	public void run(){		
 		try {
 			ObjectInputStream inStream = new ObjectInputStream(this.socket.getInputStream());
+			ObjectOutputStream outStream = new ObjectOutputStream(this.socket.getOutputStream());
 			String option = (String) inStream.readObject();
 			System.out.println("Option: " + option);
 			
 			if (option.equals("-c")){
 				
-				verifyCommandC(inStream);
+				verifyCommandC(inStream, outStream);
 				
 			} else if (option.equals("-s")) {
 				
@@ -54,71 +56,90 @@ public class ServerThread extends Thread {
 
 	}
 	
-	private void verifyCommandC(ObjectInputStream inStream) throws ClassNotFoundException, IOException {
+	private void verifyCommandC(ObjectInputStream inStream, ObjectOutputStream outStream) throws ClassNotFoundException, IOException {
 		int filesDim = (int) inStream.readObject();
 		System.out.println("filesDim: " + filesDim);
 		
 		for (int i = 0; i < filesDim; i++) {
 			
-			//---------------Receber Ficheiro Cifrado----------------------
+			System.out.println("-----------New File-----------");
 			
-			String fileNameCif = (String) inStream.readObject();
-			System.out.println(fileNameCif);
+			Boolean fileExistClient = (Boolean) inStream.readObject();
 			
-			FileOutputStream outFileStreamCif = new FileOutputStream("../cloud/files/" + fileNameCif);
-			BufferedOutputStream outFileCif = new BufferedOutputStream(outFileStreamCif);
-			
-			try{
-				Long fileSizeCif = (Long)inStream.readObject();
-				System.out.println(fileSizeCif);
+			if (fileExistClient) {
+				String fileName = (String) inStream.readObject();
+			 
+				File f = new File("../cloud/files/" + fileName + ".cifrado");
 				
-				byte[] bufferCif = new byte[1024];
-				int xCif = 0;
-				int tempCif = fileSizeCif.intValue();
+				Boolean fileExistServer = f.exists();
 				
-				while(tempCif > 0){
-					xCif = inStream.read(bufferCif, 0, tempCif > 1024 ? 1024 : tempCif);
-					outFileCif.write(bufferCif, 0, xCif);
-					tempCif -= xCif;
+				outStream.writeObject(fileExistServer);
+				
+				if(!fileExistServer) {
+					
+					//---------------Receber Ficheiro Cifrado----------------------
+					
+					String fileNameCif = (String) inStream.readObject();
+					System.out.println(fileNameCif);
+					
+					FileOutputStream outFileStreamCif = new FileOutputStream("../cloud/files/" + fileNameCif);
+					BufferedOutputStream outFileCif = new BufferedOutputStream(outFileStreamCif);
+					
+					try{
+						Long fileSizeCif = (Long)inStream.readObject();
+						System.out.println(fileSizeCif);
+						
+						byte[] bufferCif = new byte[1024];
+						int xCif = 0;
+						int tempCif = fileSizeCif.intValue();
+						
+						while(tempCif > 0){
+							xCif = inStream.read(bufferCif, 0, tempCif > 1024 ? 1024 : tempCif);
+							outFileCif.write(bufferCif, 0, xCif);
+							tempCif -= xCif;
+						}
+						System.out.println(outFileCif.toString());
+		
+					} catch (ClassNotFoundException e1) {
+						e1.printStackTrace();
+					}
+					outFileCif.close();
+					
+					
+					//---------------Receber Chave Cifrada----------------------
+					
+					String fileNameKey = (String) inStream.readObject();
+					System.out.println(fileNameKey);
+					
+					FileOutputStream outFileStreamKey = new FileOutputStream("../cloud/keys/" + fileNameKey);
+					BufferedOutputStream outFileKey = new BufferedOutputStream(outFileStreamKey);
+					
+					try{
+						Long fileSizeKey = (Long)inStream.readObject();
+						System.out.println(fileSizeKey);
+						
+						byte[] bufferKey = new byte[1024];
+						int xKey = 0;
+						int tempKey = fileSizeKey.intValue();
+						
+						while(tempKey > 0){
+							xKey = inStream.read(bufferKey, 0, tempKey > 1024 ? 1024 : tempKey);
+							outFileKey.write(bufferKey, 0, xKey);
+							tempKey -= xKey;
+						}
+						System.out.println(outFileKey.toString());
+		
+					} catch (ClassNotFoundException e1) {
+						e1.printStackTrace();
+					}
+					outFileKey.close();
+				} else {
+					System.out.println("The file " + fileName + " already exist in server.");
 				}
-				System.out.println(outFileCif.toString());
-
-			} catch (ClassNotFoundException e1) {
-				e1.printStackTrace();
+			} else {
+				System.out.println("The file doesn't exist in client.");
 			}
-			outFileCif.close();
-			
-			
-			//---------------Receber Chave Cifrada----------------------
-			
-			String fileNameKey = (String) inStream.readObject();
-			System.out.println(fileNameKey);
-			
-			FileOutputStream outFileStreamKey = new FileOutputStream("../cloud/keys/" + fileNameKey);
-			BufferedOutputStream outFileKey = new BufferedOutputStream(outFileStreamKey);
-			
-			try{
-				Long fileSizeKey = (Long)inStream.readObject();
-				System.out.println(fileSizeKey);
-				
-				byte[] bufferKey = new byte[1024];
-				int xKey = 0;
-				int tempKey = fileSizeKey.intValue();
-				
-				while(tempKey > 0){
-					xKey = inStream.read(bufferKey, 0, tempKey > 1024 ? 1024 : tempKey);
-					outFileKey.write(bufferKey, 0, xKey);
-					tempKey -= xKey;
-				}
-				System.out.println(outFileKey.toString());
-
-			} catch (ClassNotFoundException e1) {
-				e1.printStackTrace();
-			}
-			outFileKey.close();
-
-		}
-		//dar erro caso o ficheiro já exista no servidor
+		}	
 	}
 	
 	private void verifyCommandS(ObjectInputStream inStream) throws IOException, ClassNotFoundException {  
