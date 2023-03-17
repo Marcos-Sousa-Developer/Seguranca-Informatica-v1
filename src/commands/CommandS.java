@@ -38,11 +38,7 @@ public class CommandS {
 		
 	}
 	
-	private String removeExtension(String fileName){
-		
-		return "";
-		
-	}
+
 	private Signature assignFile() throws NoSuchAlgorithmException {
 		
 		//Set the signature
@@ -68,8 +64,6 @@ public class CommandS {
 			
 			//turn key in instance of private key
 			PrivateKey privatekey = (PrivateKey) key; 
-			
-			System.out.println(privatekey);
 			
 
 			//Encrypted digital assign
@@ -118,9 +112,11 @@ public class CommandS {
 		//Send the option first
 		outStream.writeObject("-s");
 		
+		//Send numbers of files
+		outStream.writeObject(this.files.size());
+		
+		
 		for (String fileName : this.files) { 
-			
-			
 			
 			//Send the file name
 			outStream.writeObject(fileName);
@@ -131,23 +127,33 @@ public class CommandS {
 			//get signature object 
 			Signature signature = assignFile(); 
 			
+			int totalLength = fileInStream.available();
+			
+			outStream.writeObject(totalLength);
+
 			//byte array for file
-			byte[] dataToBytes = new byte[1024]; 
+			byte[] dataToBytes = new byte[Math.min(totalLength, 1024)]; 
 			
 			//Length of the contents of the read file 
 			int contentLength = fileInStream.read(dataToBytes); 
 			
+			System.out.println(fileName);
+			
 			//read files chunk 
 			while(contentLength != -1) {
+				System.out.println(contentLength);
 				//Hash the data
-				signature.update(dataToBytes, 0, contentLength);
+				signature.update(dataToBytes);
 				//send data to server
-				outStream.write(dataToBytes);
+				outStream.write(dataToBytes,0,contentLength);
 				//continue to read fileInStream
-				contentLength = fileInStream.read();
+				contentLength = fileInStream.read(dataToBytes);
 			}
-			outStream.writeObject("signature");
-			outStream.write(signature.sign());
+			
+			System.out.println();
+			
+			outStream.writeObject(signature.sign());
+			fileInStream.close();
 
 		}
 		

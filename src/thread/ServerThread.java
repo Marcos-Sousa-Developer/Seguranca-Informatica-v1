@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.security.Signature;
+import java.security.SignatureException;
 
 public class ServerThread extends Thread {
 	
@@ -121,23 +123,49 @@ public class ServerThread extends Thread {
 	
 	private void verifyCommandS(ObjectInputStream inStream) throws IOException, ClassNotFoundException {  
 		
-		String fileName = (String) inStream.readObject(); 
 		
-		//Read hashed sign file 
-		byte[] bufferData = new byte[1024]; 
+		//Get numbers of files
+		int numbersOfFiles = (int) inStream.readObject(); 
 		
-		int contentLength = inStream.available(); 
+		System.out.println();
 		
-		while(contentLength != -1) {
+		for(int i=0; i<numbersOfFiles; i++) {
+			
+			//Read the file name received by client
+			String fileName = (String) inStream.readObject();   
+			
+			//Create new fileOutput ".assign"
+			FileOutputStream outFile = new FileOutputStream(fileName + ".assinado");
 			
 			
+			int totalLength = (int) inStream.readObject();
+			
+			//Buffer
+			byte[] bufferData = new byte[totalLength]; 
+			
+			//Read hashed sign file with previous buffer
+			int contentLength = inStream.read(bufferData);
+			
+			while(contentLength > 0) {
+				
+				outFile.write(bufferData, 0, contentLength);
+				contentLength = inStream.read(bufferData);
+				System.out.println(contentLength);
+				
+			}
+			System.out.println();
+			outFile.close();
+					
+			//Get Signature 
+			FileOutputStream outSignature = new FileOutputStream(fileName + ".assinatura");
+			
+			//Get out put of signature
+						
+			outSignature.write((byte[]) inStream.readObject());
+			
+			outSignature.close();
 			
 		}
-		
-		//FileOutputStream fileOutputStream = new FileOutputStream(filename);
-		
-		
-		
 		
 		
 	}
