@@ -54,7 +54,7 @@ public class myCloud {
 		switch (args[2]) {
 			case "-c":
 
-				new CommandC(address[0], Integer.parseInt(address[1]), files, "-c").sendToServer();
+				new CommandC(address[0], Integer.parseInt(address[1]), files).sendToServer();
 
 				break;
 			case "-s":

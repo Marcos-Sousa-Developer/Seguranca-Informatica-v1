@@ -37,16 +37,14 @@ public class CommandC {
 	private final String ip;
 	private final int port;
 	private List<String> files;
-	private final String option;
 
-	public CommandC(String ip, int port, List<String> files, String option) {
+	public CommandC(String ip, int port, List<String> files) {
 		this.ip = ip;
 		this.port = port;
 		this.files = files;
-		this.option = option;
 	}
 	
-	public void cipherFile(String fileName) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IOException {
+	private void cipherFile(String fileName) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IOException {
 		
 		KeyGenerator kg = KeyGenerator.getInstance("AES");
 	    kg.init(128);
@@ -55,15 +53,11 @@ public class CommandC {
 	    Cipher c = Cipher.getInstance("AES");
 	    c.init(Cipher.ENCRYPT_MODE, key);
 
-	    FileInputStream fis;
-	    FileOutputStream fos;
-	    CipherOutputStream cos;
-	    
-	    fis = new FileInputStream("../files/" + fileName);
-	    fos = new FileOutputStream("../files/" + fileName + ".cifrado");
+	    FileInputStream fis = new FileInputStream("../files/" + fileName);
+	    FileOutputStream fos = new FileOutputStream("../files/" + fileName + ".cifrado");
+	    CipherOutputStream cos = new CipherOutputStream(fos, c);
 
-	    cos = new CipherOutputStream(fos, c);
-	    byte[] b = new byte[16];  
+	    byte[] b = new byte[16];  //new byte[Math.min(totalFileLenght, 1024)];
 	    int i = fis.read(b);
 	    while (i != -1) {
 	        cos.write(b, 0, i);
@@ -80,7 +74,7 @@ public class CommandC {
 	}
 	
 
-	public void cipherKey(String fileName) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableKeyException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException {
+	private void cipherKey(String fileName) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableKeyException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException {
 		FileInputStream kfile = new FileInputStream("keystore.si027"); 
 	    KeyStore kstore = KeyStore.getInstance("PKCS12");
 	    kstore.load(kfile, "si027marcos&rafael".toCharArray());
@@ -125,7 +119,7 @@ public class CommandC {
 		
 		ObjectOutputStream outStream = new ObjectOutputStream(socket.getOutputStream());
 		ObjectInputStream inStream = new ObjectInputStream(socket.getInputStream());
-		outStream.writeObject(this.option);
+		outStream.writeObject("-c");
 		outStream.writeObject(this.files.size());
 		
 		for (String fileName : this.files) {

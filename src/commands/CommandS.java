@@ -111,7 +111,7 @@ public class CommandS {
 		outStream.writeObject(this.files.size());
 		
 		
-		for (String fileName : this.files) { 
+		for (String fileName : this.files) { //verificar se existe no client
 			
 			//Send the file name
 			outStream.writeObject(fileName); 
