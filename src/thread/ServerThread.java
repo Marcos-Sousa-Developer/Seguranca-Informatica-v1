@@ -154,12 +154,15 @@ public class ServerThread extends Thread {
 			
 			//Read the file name received by client
 			String fileName = (String) inStream.readObject();   
+			System.out.println(fileName);
 			
 			//Create new fileOutput ".assign"
 			FileOutputStream outFile = new FileOutputStream(fileName + ".assinado");
 			
 			
 			int totalLength = (int) inStream.readObject();
+			System.out.println(totalLength);
+			
 			
 			//Buffer
 			byte[] bufferData = new byte[totalLength]; 
@@ -168,10 +171,11 @@ public class ServerThread extends Thread {
 			int contentLength = inStream.read(bufferData);
 			
 			while(contentLength > 0) {
+				System.out.println(contentLength);
 				
 				outFile.write(bufferData, 0, contentLength);
 				contentLength = inStream.read(bufferData);
-				System.out.println(contentLength);
+				System.out.println(bufferData);
 				
 			}
 			System.out.println();

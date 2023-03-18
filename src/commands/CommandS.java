@@ -129,13 +129,15 @@ public class CommandS {
 			
 			int totalLength = fileInStream.available();
 			
-			outStream.writeObject(totalLength);
+			outStream.writeObject(Math.min(totalLength, 1024));
 
 			//byte array for file
 			byte[] dataToBytes = new byte[Math.min(totalLength, 1024)]; 
 			
 			//Length of the contents of the read file 
 			int contentLength = fileInStream.read(dataToBytes); 
+			
+			System.out.println();
 			
 			System.out.println(fileName);
 			
@@ -148,6 +150,7 @@ public class CommandS {
 				outStream.write(dataToBytes,0,contentLength);
 				//continue to read fileInStream
 				contentLength = fileInStream.read(dataToBytes);
+				System.out.println(contentLength);
 			}
 			
 			System.out.println();
