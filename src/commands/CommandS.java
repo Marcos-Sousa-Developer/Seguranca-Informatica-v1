@@ -3,6 +3,7 @@ package commands;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -16,7 +17,6 @@ import java.security.Signature;
 import java.security.SignatureException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
-import java.util.ArrayList;
 import java.util.List;
 import java.io.File;
 
@@ -44,9 +44,7 @@ public class CommandS {
 		//Set the signature
 		Signature signature = Signature.getInstance("MD5withRSA");   
 		
-		
 		try {
-			
 			//Read the KeyStore File
 			FileInputStream keyStorefile = new FileInputStream(new File("../src/KeyStore.si027")); 
 			
@@ -65,15 +63,9 @@ public class CommandS {
 			//turn key in instance of private key
 			PrivateKey privatekey = (PrivateKey) key; 
 			
-
 			//Encrypted digital assign
 			signature.initSign(privatekey); 
-			
-			System.out.println("init");
-			
-			
-			
-			
+						
 		} catch (FileNotFoundException e) {
 			System.out.println("File not found");
 			
@@ -101,13 +93,16 @@ public class CommandS {
 		
 	}
 	
-	public void sendToServer() throws UnknownHostException, IOException, NoSuchAlgorithmException, SignatureException {
+	public void sendToServer() throws UnknownHostException, IOException, NoSuchAlgorithmException, SignatureException, ClassNotFoundException {
 		
 		//Set the server
 		Socket socket = new Socket(this.ip, this.port);
 		
 		//Send data to server
 		ObjectOutputStream outStream = new ObjectOutputStream(socket.getOutputStream());
+		
+		//Read from Server
+		ObjectInputStream inStream = new ObjectInputStream(socket.getInputStream());
 		
 		//Send the option first
 		outStream.writeObject("-s");
@@ -119,44 +114,51 @@ public class CommandS {
 		for (String fileName : this.files) { 
 			
 			//Send the file name
-			outStream.writeObject(fileName);
+			outStream.writeObject(fileName); 
 			
-			//Read the received file 
-			FileInputStream fileInStream = new FileInputStream(fileName); 
+			// Verify if file exists
+			Boolean checkFileExists = (Boolean) inStream.readObject(); 
 			
-			//get signature object 
-			Signature signature = assignFile(); 
-			
-			int totalLength = fileInStream.available();
-			
-			outStream.writeObject(Math.min(totalLength, 1024));
+			//File does not exist
+			if(!checkFileExists) {
+				
+				//Read the received file 
+				FileInputStream fileInStream = new FileInputStream(fileName); 
+				
+				//get signature object 
+				Signature signature = assignFile(); 
+				
+				//get total file length
+				int totalLength = fileInStream.available();
+				
+				//send to server exact buffer size
+				outStream.writeObject(Math.min(totalLength, 1024));
 
-			//byte array for file
-			byte[] dataToBytes = new byte[Math.min(totalLength, 1024)]; 
-			
-			//Length of the contents of the read file 
-			int contentLength = fileInStream.read(dataToBytes); 
-			
-			System.out.println();
-			
-			System.out.println(fileName);
-			
-			//read files chunk 
-			while(contentLength != -1) {
-				System.out.println(contentLength);
-				//Hash the data
-				signature.update(dataToBytes);
-				//send data to server
-				outStream.write(dataToBytes,0,contentLength);
-				//continue to read fileInStream
-				contentLength = fileInStream.read(dataToBytes);
-				System.out.println(contentLength);
+				//byte array for file
+				byte[] dataToBytes = new byte[Math.min(totalLength, 1024)]; 
+				
+				//Length of the contents of the read file 
+				int contentLength = fileInStream.read(dataToBytes); 
+				
+				//read files chunk 
+				while(contentLength != -1) {
+					//Hash the data
+					signature.update(dataToBytes);
+					//send data to server
+					outStream.write(dataToBytes,0,contentLength);
+					//continue to read fileInStream
+					contentLength = fileInStream.read(dataToBytes);
+				}
+				
+				//send signature to server
+				outStream.writeObject(signature.sign());
+				fileInStream.close();
+				
 			}
-			
-			System.out.println();
-			
-			outStream.writeObject(signature.sign());
-			fileInStream.close();
+			//File exist
+			else {
+				System.out.println("File " + fileName + " is already on the server!");
+			}
 
 		}
 		

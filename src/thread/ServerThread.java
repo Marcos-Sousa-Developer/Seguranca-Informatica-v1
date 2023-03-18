@@ -1,17 +1,12 @@
 package thread;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.security.Signature;
-import java.security.SignatureException;
 
 public class ServerThread extends Thread {
 	
@@ -29,7 +24,6 @@ public class ServerThread extends Thread {
 			ObjectInputStream inStream = new ObjectInputStream(this.socket.getInputStream());
 			ObjectOutputStream outStream = new ObjectOutputStream(this.socket.getOutputStream());
 			String option = (String) inStream.readObject();
-			System.out.println("Option: " + option);
 			
 			if (option.equals("-c")){
 				
@@ -37,7 +31,7 @@ public class ServerThread extends Thread {
 				
 			} else if (option.equals("-s")) {
 				
-				verifyCommandS(inStream);
+				verifyCommandS(inStream, outStream);
 				
 				
 			} else if (option.equals("-e")) {
@@ -142,57 +136,57 @@ public class ServerThread extends Thread {
 		}	
 	}
 	
-	private void verifyCommandS(ObjectInputStream inStream) throws IOException, ClassNotFoundException {  
+	private void verifyCommandS(ObjectInputStream inStream, ObjectOutputStream outStream) throws IOException, ClassNotFoundException {  
 		
 		
 		//Get numbers of files
 		int numbersOfFiles = (int) inStream.readObject(); 
 		
-		System.out.println();
-		
 		for(int i=0; i<numbersOfFiles; i++) {
 			
 			//Read the file name received by client
 			String fileName = (String) inStream.readObject();   
-			System.out.println(fileName);
 			
-			//Create new fileOutput ".assign"
-			FileOutputStream outFile = new FileOutputStream(fileName + ".assinado");
+			// Check file 
+			File file = new File(fileName + ".assinado"); 
 			
-			
-			int totalLength = (int) inStream.readObject();
-			System.out.println(totalLength);
-			
-			
-			//Buffer
-			byte[] bufferData = new byte[totalLength]; 
-			
-			//Read hashed sign file with previous buffer
-			int contentLength = inStream.read(bufferData);
-			
-			while(contentLength > 0) {
-				System.out.println(contentLength);
+			// Verify if file exists
+			if(!file.exists()) {
 				
-				outFile.write(bufferData, 0, contentLength);
-				contentLength = inStream.read(bufferData);
-				System.out.println(bufferData);
+				//File does not exist
+				outStream.writeObject(false);
+				
+				//Create new fileOutput ".assign"
+				FileOutputStream outFile = new FileOutputStream(fileName + ".assinado");
+				
+				//get the total buffer size for each file Math.min(totalbytesOfFile,1024)
+				int totalLength = (int) inStream.readObject();
+				
+				//Buffer
+				byte[] bufferData = new byte[totalLength]; 
+				
+				//Read hashed sign file with previous buffer
+				int contentLength = inStream.read(bufferData);
+				
+				while(contentLength > 0) {
+					outFile.write(bufferData, 0, contentLength);
+					contentLength = inStream.read(bufferData);
+				}
+				outFile.close();
+						
+				//Get Signature 
+				FileOutputStream outSignature = new FileOutputStream(fileName + ".assinatura");
+				
+				//Get out put of signature
+				outSignature.write((byte[]) inStream.readObject());
+				outSignature.close();
 				
 			}
-			System.out.println();
-			outFile.close();
-					
-			//Get Signature 
-			FileOutputStream outSignature = new FileOutputStream(fileName + ".assinatura");
-			
-			//Get out put of signature
-						
-			outSignature.write((byte[]) inStream.readObject());
-			
-			outSignature.close();
-			
+			//File exist
+			else {
+				outStream.writeObject(true); 
+			}
 		}
-		
-		
 	}
 	
 	public void send() {
