@@ -160,17 +160,23 @@ public class ServerThread extends Thread {
 				FileOutputStream outFile = new FileOutputStream(fileName + ".assinado");
 				
 				//get the total buffer size for each file Math.min(totalbytesOfFile,1024)
-				int totalLength = (int) inStream.readObject();
+				int totalFileLength = (int) inStream.readObject();
 				
 				//Buffer
-				byte[] bufferData = new byte[totalLength]; 
+				byte[] bufferData = new byte[Math.min(totalFileLength, 1024)]; 
 				
-				//Read hashed sign file with previous buffer
+				//Read chunk file
 				int contentLength = inStream.read(bufferData);
 				
-				while(contentLength > 0) {
-					outFile.write(bufferData, 0, contentLength);
+				while(totalFileLength > 0 && contentLength > 0) {
+					if(totalFileLength >= contentLength) { 
+						outFile.write(bufferData, 0, contentLength);
+					}
+					else {
+						outFile.write(bufferData, 0, totalFileLength);
+					}
 					contentLength = inStream.read(bufferData);
+					totalFileLength -= contentLength; 
 				}
 				outFile.close();
 						

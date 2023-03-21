@@ -42,7 +42,7 @@ public class CommandS {
 	private Signature assignFile() throws NoSuchAlgorithmException {
 		
 		//Set the signature
-		Signature signature = Signature.getInstance("MD5withRSA");   
+		Signature signature = Signature.getInstance("SHA256withRSA");   
 		
 		try {
 			//Read the KeyStore File
@@ -129,19 +129,19 @@ public class CommandS {
 				Signature signature = assignFile(); 
 				
 				//get total file length
-				int totalLength = fileInStream.available();
+				int totalFileLength = fileInStream.available();
 				
 				//send to server exact buffer size
-				outStream.writeObject(Math.min(totalLength, 1024));
+				outStream.writeObject(totalFileLength);
 
 				//byte array for file
-				byte[] dataToBytes = new byte[Math.min(totalLength, 1024)]; 
+				byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)]; 
 				
 				//Length of the contents of the read file 
 				int contentLength = fileInStream.read(dataToBytes); 
 				
 				//read files chunk 
-				while(contentLength != -1) {
+				while(contentLength != -1 ) {
 					//Hash the data
 					signature.update(dataToBytes);
 					//send data to server
