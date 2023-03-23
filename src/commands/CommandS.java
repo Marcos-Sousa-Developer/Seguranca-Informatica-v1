@@ -110,59 +110,66 @@ public class CommandS {
 		//Send numbers of files
 		outStream.writeObject(this.files.size());
 		
-		
-		for (String fileName : this.files) { //verificar se existe no client
+		for (String fileName : this.files) {
 			
-			//Send the file name
-			outStream.writeObject(fileName); 
+			File fileToRead = new File("../src/"+fileName);
 			
-			// Verify if file exists
-			Boolean checkFileExists = (Boolean) inStream.readObject(); 
-			
-			//File does not exist
-			if(!checkFileExists) {
+			if(fileToRead.exists()) {
 				
-				//Read the received file 
-				FileInputStream fileInStream = new FileInputStream(fileName); 
+				//Send true to server know that file exists
+				outStream.writeObject(true); 
 				
-				//get signature object 
-				Signature signature = assignFile(); 
+				//Send the file name
+				outStream.writeObject(fileName); 
 				
-				//get total file length
-				int totalFileLength = fileInStream.available();
-				
-				//send to server exact buffer size
-				outStream.writeObject(totalFileLength);
+				// Verify if file exists in the server
+				//File does not exist
+				if(!(Boolean) inStream.readObject()) {
+					
+					//Read the received file 
+					FileInputStream fileInStream = new FileInputStream(fileToRead); 
+					
+					//get signature object 
+					Signature signature = assignFile(); 
+					
+					//get total file length
+					int totalFileLength = fileInStream.available();
+					
+					//send to server exact buffer size
+					outStream.writeObject(totalFileLength);
 
-				//byte array for file
-				byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)]; 
-				
-				//Length of the contents of the read file 
-				int contentLength = fileInStream.read(dataToBytes); 
-				
-				//read files chunk 
-				while(contentLength != -1 ) {
-					//Hash the data
-					signature.update(dataToBytes);
-					//send data to server
-					outStream.write(dataToBytes,0,contentLength);
-					//continue to read fileInStream
-					contentLength = fileInStream.read(dataToBytes);
+					//byte array for file
+					byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)]; 
+					
+					//Length of the contents of the read file 
+					int contentLength = fileInStream.read(dataToBytes); 
+					
+					//read files chunk 
+					while(contentLength != -1 ) {
+						//Hash the data
+						signature.update(dataToBytes);
+						//send data to server
+						outStream.write(dataToBytes,0,contentLength);
+						//continue to read fileInStream
+						contentLength = fileInStream.read(dataToBytes);
+					}
+					
+					//send signature to server
+					outStream.writeObject(signature.sign());
+					fileInStream.close();
+					
+				}
+				//File exist
+				else {
+					System.out.println("File " + fileName + " is already on the server!");
 				}
 				
-				//send signature to server
-				outStream.writeObject(signature.sign());
-				fileInStream.close();
-				
 			}
-			//File exist
+			
 			else {
-				System.out.println("File " + fileName + " is already on the server!");
+				outStream.writeObject(false);
+				System.out.println("File " + fileName + " does not exist!");
 			}
-
 		}
-		
 	}
-	
-	
 }

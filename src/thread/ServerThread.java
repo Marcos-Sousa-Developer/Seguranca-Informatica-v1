@@ -144,53 +144,57 @@ public class ServerThread extends Thread {
 		
 		for(int i=0; i<numbersOfFiles; i++) {
 			
-			//Read the file name received by client
-			String fileName = (String) inStream.readObject();   
-			
-			// Check file 
-			File file = new File(fileName + ".assinado"); 
-			
-			// Verify if file exists
-			if(!file.exists()) {
+			//check if file exists to continue
+			if((boolean) inStream.readObject()) {
 				
-				//File does not exist
-				outStream.writeObject(false);
+				//Read the file name received by client
+				String fileName = (String) inStream.readObject();   
 				
-				//Create new fileOutput ".assign"
-				FileOutputStream outFile = new FileOutputStream(fileName + ".assinado");
+				// Check file 
+				File file = new File(fileName + ".assinado"); 
 				
-				//get the total buffer size for each file Math.min(totalbytesOfFile,1024)
-				int totalFileLength = (int) inStream.readObject();
-				
-				//Buffer
-				byte[] bufferData = new byte[Math.min(totalFileLength, 1024)]; 
-				
-				//Read chunk file
-				int contentLength = inStream.read(bufferData);
-				
-				while(totalFileLength > 0 && contentLength > 0) {
-					if(totalFileLength >= contentLength) { 
-						outFile.write(bufferData, 0, contentLength);
+				// Verify if file exists
+				if(!file.exists()) {
+					
+					//File does not exist
+					outStream.writeObject(false);
+					
+					//Create new fileOutput ".assign"
+					FileOutputStream outFile = new FileOutputStream(fileName + ".assinado");
+					
+					//get the total buffer size for each file Math.min(totalbytesOfFile,1024)
+					int totalFileLength = (int) inStream.readObject();
+					
+					//Buffer
+					byte[] bufferData = new byte[Math.min(totalFileLength, 1024)]; 
+					
+					//Read chunk file
+					int contentLength = inStream.read(bufferData);
+					
+					while(totalFileLength > 0 && contentLength > 0) {
+						if(totalFileLength >= contentLength) { 
+							outFile.write(bufferData, 0, contentLength);
+						}
+						else {
+							outFile.write(bufferData, 0, totalFileLength);
+						}
+						contentLength = inStream.read(bufferData);
+						totalFileLength -= contentLength; 
 					}
-					else {
-						outFile.write(bufferData, 0, totalFileLength);
-					}
-					contentLength = inStream.read(bufferData);
-					totalFileLength -= contentLength; 
+					outFile.close();
+							
+					//Get Signature 
+					FileOutputStream outSignature = new FileOutputStream(fileName + ".assinatura");
+					
+					//Get out put of signature
+					outSignature.write((byte[]) inStream.readObject());
+					outSignature.close();
+					
 				}
-				outFile.close();
-						
-				//Get Signature 
-				FileOutputStream outSignature = new FileOutputStream(fileName + ".assinatura");
-				
-				//Get out put of signature
-				outSignature.write((byte[]) inStream.readObject());
-				outSignature.close();
-				
-			}
-			//File exist
-			else {
-				outStream.writeObject(true); 
+				//File exist
+				else {
+					outStream.writeObject(true); 
+				}
 			}
 		}
 	}
