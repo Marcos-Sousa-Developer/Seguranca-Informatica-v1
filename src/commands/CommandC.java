@@ -34,8 +34,8 @@ import javax.crypto.spec.SecretKeySpec;
 
 public class CommandC {
 	
-	private final String ip;
-	private final int port;
+	private String ip;
+	private int port;
 	private List<String> files;
 
 	public CommandC(String ip, int port, List<String> files) {
@@ -56,12 +56,14 @@ public class CommandC {
 	    FileInputStream fis = new FileInputStream("../files/" + fileName);
 	    FileOutputStream fos = new FileOutputStream("../files/" + fileName + ".cifrado");
 	    CipherOutputStream cos = new CipherOutputStream(fos, c);
-
-	    byte[] b = new byte[16];  //new byte[Math.min(totalFileLenght, 1024)];
-	    int i = fis.read(b);
-	    while (i != -1) {
-	        cos.write(b, 0, i);
-	        i = fis.read(b);
+	    
+	    int totalFileLength = fis.available();
+		byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)]; 
+	    
+		int contentLength = fis.read(dataToBytes);
+	    while (contentLength != -1) {
+	        cos.write(dataToBytes, 0, contentLength);
+	        contentLength = fis.read(dataToBytes);
 	    }
 	    cos.close();
 	    fis.close();
@@ -148,11 +150,16 @@ public class CommandC {
 			        outStream.writeObject(dimFileCif);
 			        
 			        BufferedInputStream myFileCif = new BufferedInputStream(new FileInputStream("../files/" + fileName + ".cifrado"));
-			        byte[] bufferFileCif = new byte[1024];
-			        int xCif = 0;
-			        while((xCif = myFileCif.read(bufferFileCif, 0, 1024)) > 0){
-			            outStream.write(bufferFileCif, 0, xCif);
-			        }
+			        
+			        int dimFileCifInt = dimFileCif.intValue();
+			        
+					byte[] dataToBytesCif = new byte[Math.min(dimFileCifInt, 1024)]; 
+				    
+					int contentLengthCif = myFileCif.read(dataToBytesCif);
+				    while (contentLengthCif != -1) {
+				    	outStream.write(dataToBytesCif, 0, contentLengthCif);
+				    	contentLengthCif = myFileCif.read(dataToBytesCif);
+				    }
 			        myFileCif.close();
 			        
 			      //---------------Enviar Chave Cifrada----------------------
@@ -164,15 +171,30 @@ public class CommandC {
 			        outStream.writeObject(dimKeyCif);
 			        
 			        BufferedInputStream myKeyCif = new BufferedInputStream(new FileInputStream("../files/" + fileName + ".chave_secreta"));
-			        byte[] bufferKeyCif = new byte[1024];
-			        int xKey = 0;
-			        while((xKey = myKeyCif.read(bufferKeyCif, 0, 1024)) > 0){
-			            outStream.write(bufferKeyCif, 0, xKey);
-			        }
+			        
+			        int dimKeyCifInt = dimKeyCif.intValue();
+			        
+					byte[] dataToBytesKey = new byte[Math.min(dimKeyCifInt, 1024)]; 
+				    
+					int contentLengthKey = myKeyCif.read(dataToBytesKey);
+				    while (contentLengthKey != -1) {
+				    	outStream.write(dataToBytesKey, 0, contentLengthKey);
+				    	contentLengthKey = myKeyCif.read(dataToBytesKey);
+				    }
 			        myKeyCif.close();
 			        
 			        System.out.println("The file " + fileName + " have been sent correctly.");
 					
+			       //----------------Apagar ficheiros no cliente--------------
+			        
+			        File fCif = new File("../files/" + fileName + ".cifrado");
+			        File fKey = new File("../files/" + fileName + ".key");
+			        File fKeyCif = new File("../files/" + fileName + ".chave_secreta");
+			        
+			        fCif.delete();
+			        fKey.delete();
+			        fKeyCif.delete();
+			        
 				} else {
 					System.err.println("The file " + fileName + " already exist in server.");
 				}

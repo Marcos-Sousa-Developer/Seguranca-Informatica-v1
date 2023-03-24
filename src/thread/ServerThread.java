@@ -16,7 +16,6 @@ public class ServerThread extends Thread {
 	//Thread server for each client
 	public ServerThread(Socket inSoc) {
 		socket = inSoc;
-		//System.out.println("thread do server para cada cliente");
 	}
 	
 	public void run(){		
@@ -32,7 +31,6 @@ public class ServerThread extends Thread {
 			} else if (option.equals("-s")) {
 				
 				verifyCommandS(inStream, outStream);
-				
 				
 			} else if (option.equals("-e")) {
 				
@@ -53,7 +51,7 @@ public class ServerThread extends Thread {
 	private void verifyCommandC(ObjectInputStream inStream, ObjectOutputStream outStream) throws ClassNotFoundException, IOException {
 		int filesDim = (int) inStream.readObject();
 		System.out.println("filesDim: " + filesDim);
-		
+
 		for (int i = 0; i < filesDim; i++) {
 			
 			System.out.println("-----------New File-----------");
@@ -81,18 +79,23 @@ public class ServerThread extends Thread {
 					
 					try{
 						Long fileSizeCif = (Long)inStream.readObject();
-						System.out.println(fileSizeCif);
+
+						int fileSizeCifInt = fileSizeCif.intValue();
 						
-						byte[] bufferCif = new byte[1024];
-						int xCif = 0;
-						int tempCif = fileSizeCif.intValue();
+						byte[] bufferDataCif = new byte[Math.min(fileSizeCifInt, 1024)];
 						
-						while(tempCif > 0){
-							xCif = inStream.read(bufferCif, 0, tempCif > 1024 ? 1024 : tempCif);
-							outFileCif.write(bufferCif, 0, xCif);
-							tempCif -= xCif;
+						int contentLengthCif = inStream.read(bufferDataCif);
+						
+						while(fileSizeCifInt > 0 && contentLengthCif > 0) {
+							if(fileSizeCifInt >= contentLengthCif) { 
+								outFileCif.write(bufferDataCif, 0, contentLengthCif);
+							}
+							else {
+								outFileCif.write(bufferDataCif, 0, fileSizeCifInt);
+							}
+							contentLengthCif = inStream.read(bufferDataCif);
+							fileSizeCifInt -= contentLengthCif; 
 						}
-						System.out.println(outFileCif.toString());
 		
 					} catch (ClassNotFoundException e1) {
 						e1.printStackTrace();
@@ -109,19 +112,25 @@ public class ServerThread extends Thread {
 					BufferedOutputStream outFileKey = new BufferedOutputStream(outFileStreamKey);
 					
 					try{
+						
 						Long fileSizeKey = (Long)inStream.readObject();
-						System.out.println(fileSizeKey);
+
+						int fileSizeKeyInt = fileSizeKey.intValue();
 						
-						byte[] bufferKey = new byte[1024];
-						int xKey = 0;
-						int tempKey = fileSizeKey.intValue();
+						byte[] bufferDataKey = new byte[Math.min(fileSizeKeyInt, 1024)];
 						
-						while(tempKey > 0){
-							xKey = inStream.read(bufferKey, 0, tempKey > 1024 ? 1024 : tempKey);
-							outFileKey.write(bufferKey, 0, xKey);
-							tempKey -= xKey;
+						int contentLengthKey = inStream.read(bufferDataKey);
+						
+						while(fileSizeKeyInt > 0 && contentLengthKey > 0) {
+							if(fileSizeKeyInt >= contentLengthKey) { 
+								outFileKey.write(bufferDataKey, 0, contentLengthKey);
+							}
+							else {
+								outFileKey.write(bufferDataKey, 0, fileSizeKeyInt);
+							}
+							contentLengthKey = inStream.read(bufferDataKey);
+							fileSizeKeyInt -= contentLengthKey; 
 						}
-						System.out.println(outFileKey.toString());
 		
 					} catch (ClassNotFoundException e1) {
 						e1.printStackTrace();
@@ -199,7 +208,12 @@ public class ServerThread extends Thread {
 		}
 	}
 	
-	public void send() {
-		
+	private void verifyCommandE(ObjectInputStream inStream, ObjectOutputStream outStream) throws IOException, ClassNotFoundException {  
+
+	}
+	
+	
+	private void verifyCommandG(ObjectInputStream inStream, ObjectOutputStream outStream) throws IOException, ClassNotFoundException {  
+
 	}
 }
