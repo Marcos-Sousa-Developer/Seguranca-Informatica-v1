@@ -34,6 +34,8 @@ public class ServerThread extends Thread {
 				
 			} else if (option.equals("-e")) {
 				
+				verifyCommandE(inStream, outStream);
+
 			} else if (option.equals("-g")) {
 				
 			} 
@@ -187,8 +189,8 @@ public class ServerThread extends Thread {
 						else {
 							outFile.write(bufferData, 0, totalFileLength);
 						}
+						totalFileLength -= contentLength;
 						contentLength = inStream.read(bufferData);
-						totalFileLength -= contentLength; 
 					}
 					outFile.close();
 							
@@ -209,7 +211,43 @@ public class ServerThread extends Thread {
 	}
 	
 	private void verifyCommandE(ObjectInputStream inStream, ObjectOutputStream outStream) throws IOException, ClassNotFoundException {  
+		
+		int numbersOfFiles = (int) inStream.readObject(); 
+		
+		for(int i=0; i<numbersOfFiles; i++) {
+			
+			String fileName = (String) inStream.readObject();
+			
+			FileOutputStream outFile = new FileOutputStream(fileName + ".seguro");
 
+			int totalFileLength = (int) inStream.readObject();
+			
+			byte[] bufferData = new byte[Math.min(totalFileLength, 1024)];
+			
+			int  contentFileLength = inStream.read(bufferData);
+
+			while(contentFileLength > 0 && totalFileLength > 0) {
+				if (totalFileLength >= contentFileLength) {
+					outFile.write(bufferData, 0, contentFileLength);
+				} else {
+					outFile.write(bufferData, 0, totalFileLength);
+				}
+				totalFileLength -= contentFileLength;
+				contentFileLength = inStream.read(bufferData);
+			}
+			outFile.close();
+			
+			FileOutputStream outSignature = new FileOutputStream(fileName + ".assinatura");
+
+			outSignature.write((byte[])inStream.readObject());
+			
+			FileOutputStream outCipherKey = new FileOutputStream(fileName + ".chave_secreta");
+
+			outCipherKey.write((byte[])inStream.readObject());
+
+		}
+		
+		
 	}
 	
 	

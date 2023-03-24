@@ -3,6 +3,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import commands.CommandC;
+import commands.CommandE;
 import commands.CommandG;
 import commands.CommandS;
 import commands.VerifyPort;
@@ -65,7 +66,7 @@ public class myCloud {
 				break;
 			case "-e":
 
-				//method
+				new CommandE(address[0], Integer.parseInt(address[1]), files).sendToServer();
 
 				break;
 			case "-g":
