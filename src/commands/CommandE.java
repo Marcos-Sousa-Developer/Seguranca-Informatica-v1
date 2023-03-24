@@ -24,6 +24,7 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.util.List;
 
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.CipherOutputStream;
 import javax.crypto.IllegalBlockSizeException;
@@ -106,7 +107,7 @@ public class CommandE {
 	
 	
 	private Cipher cipherKey() throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableKeyException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException {
-		FileInputStream kfile = new FileInputStream("keystore.si027"); 
+		FileInputStream kfile = new FileInputStream("KeyStore.si027"); 
 	    KeyStore kstore = KeyStore.getInstance("PKCS12");
 	    kstore.load(kfile, "si027marcos&rafael".toCharArray());
 	    
@@ -126,7 +127,7 @@ public class CommandE {
 	}
 	
 	
-	public void sendToServer() throws UnknownHostException, IOException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, SignatureException, UnrecoverableKeyException, KeyStoreException, CertificateException, IllegalBlockSizeException {
+	public void sendToServer() throws UnknownHostException, IOException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, SignatureException, UnrecoverableKeyException, KeyStoreException, CertificateException, IllegalBlockSizeException, BadPaddingException {
 		
 		Socket socket = new Socket(this.ip, this.port);
 		
@@ -155,18 +156,15 @@ public class CommandE {
 	        byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)];
 			
 	        int contentFileLength = fileInStream.read(dataToBytes); 
-			
-	        OutputStream obj = socket.getOutputStream();
-
-	        CipherOutputStream outCipherStream = new CipherOutputStream(obj, c);
-	        
-			ObjectOutputStream outStreamCipher = new ObjectOutputStream(outCipherStream);
-
 
 	        while (contentFileLength != -1) {
 	        	signature.update(dataToBytes);
-	        	outStreamCipher.write(dataToBytes, 0, contentFileLength);
-	        	contentFileLength = fileInStream.read(dataToBytes);
+	        	outStream.write(c.update(dataToBytes));
+	        	contentFileLength = fileInStream.read(dataToBytes); 
+	        	
+	        	if(contentFileLength == -1) {
+	        		outStream.write(c.doFinal());
+	        	}
 	        }
 	        
 	        outStream.writeObject(signature.sign());
