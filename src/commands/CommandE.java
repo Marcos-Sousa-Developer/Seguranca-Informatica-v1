@@ -160,7 +160,7 @@ public class CommandE {
 
 	        CipherOutputStream outCipherStream = new CipherOutputStream(obj, c);
 	        
-			ObjectOutputStream outStreamCipher = new ObjectOutputStream(outCipherStream);
+			//ObjectOutputStream outStreamCipher = new ObjectOutputStream(outCipherStream);
 
 
 	        while (contentFileLength != -1) {
