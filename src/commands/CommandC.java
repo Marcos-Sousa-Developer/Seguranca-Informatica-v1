@@ -170,6 +170,9 @@ public class CommandC {
 			        outStream.writeObject(fileName + ".chave_secreta");
 			        outStream.writeObject(dimKeyCif);
 			        
+			        //write object na key
+			        
+			        
 			        BufferedInputStream myKeyCif = new BufferedInputStream(new FileInputStream("../files/" + fileName + ".chave_secreta"));
 			        
 			        int dimKeyCifInt = dimKeyCif.intValue();

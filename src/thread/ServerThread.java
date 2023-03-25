@@ -2,6 +2,7 @@ package thread;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -37,6 +38,8 @@ public class ServerThread extends Thread {
 				verifyCommandE(inStream, outStream);
 
 			} else if (option.equals("-g")) {
+				
+				verifyCommandG(inStream, outStream);
 
 			}
 
@@ -248,8 +251,79 @@ public class ServerThread extends Thread {
 
 	}
 
-	private void verifyCommandG(ObjectInputStream inStream, ObjectOutputStream outStream)
-			throws IOException, ClassNotFoundException {
+	private void verifyCommandG(ObjectInputStream inStream, ObjectOutputStream outStream) throws IOException, ClassNotFoundException {
+		
+		int numbersOfFiles = (int) inStream.readObject();
+				
+		for (int i = 0; i < numbersOfFiles; i++) {
+
+			String fileName = (String) inStream.readObject();
+				
+			File fileToReadSign = new File(fileName + ".assinado");
+			
+			if(fileToReadSign.exists()){
+				
+				sendToClient(outStream, "-s", fileToReadSign, fileName);
+			
+			}
+			
+			File fileToReadCif = new File(fileName + ".cifrado");
+			
+			if(fileToReadCif.exists()){
+				
+				sendToClient(outStream, "-c", fileToReadCif, fileName);
+			
+			}
+			
+			File fileToReadSecure = new File(fileName + ".seguro");
+			
+			if(fileToReadSecure.exists()){
+
+				sendToClient(outStream, "-e", fileToReadSecure, fileName);
+			
+			}
+				
+		}		
+				
+	}
+	
+	private void sendToClient(ObjectOutputStream outStream, String option, File fileToRead, String fileName) throws IOException {
+		
+		outStream.writeObject(option);
+		
+		if(option.equals("-c")) {
+			
+		} 
+		else if (option.equals("-s")) {
+			
+		}
+		else {
+			FileInputStream fileInStreamSignature = new FileInputStream(fileName + ".assinatura");
+			FileInputStream fileInStreamKey = new FileInputStream(fileName + ".chave_secreta");
+			
+			outStream.writeObject(fileInStreamSignature.readAllBytes());
+			outStream.writeObject(fileInStreamKey.readAllBytes());
+		}
+
+		FileInputStream fileInStream = new FileInputStream(fileToRead); 
+		
+		int totalFileLength = fileInStream.available();
+		
+		outStream.writeObject(totalFileLength);
+
+		byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)]; 
+		
+		int contentLength = fileInStream.read(dataToBytes); 
+		
+		while(contentLength != -1) {
+			
+			outStream.write(dataToBytes, 0, contentLength);
+			
+			contentLength = fileInStream.read(dataToBytes);
+		}
+	
+		
 
 	}
+	
 }
