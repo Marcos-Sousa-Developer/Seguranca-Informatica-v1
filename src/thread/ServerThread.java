@@ -215,8 +215,112 @@ public class ServerThread extends Thread {
 			}
 		}
 	}
-
+	
 	private void verifyCommandE(ObjectInputStream inStream, ObjectOutputStream outStream)
+			throws ClassNotFoundException, IOException {
+		int filesDim = (int) inStream.readObject();
+		System.out.println("filesDim: " + filesDim);
+
+		for (int i = 0; i < filesDim; i++) {
+
+			System.out.println("-----------New File-----------");
+
+			Boolean fileExistClient = (Boolean) inStream.readObject();
+
+			if (fileExistClient) {
+				String fileName = (String) inStream.readObject();
+
+				//File f = new File("../cloud/files/" + fileName + ".cifrado");
+				File f = new File(fileName + ".seguro");
+
+				Boolean fileExistServer = f.exists();
+
+				outStream.writeObject(fileExistServer);
+
+				if (!fileExistServer) {
+
+					// ---------------Receber Ficheiro Cifrado----------------------
+
+					String fileNameCif = (String) inStream.readObject();
+					System.out.println(fileNameCif);
+
+					//FileOutputStream outFileStreamCif = new FileOutputStream("../cloud/files/" + fileNameCif);
+					FileOutputStream outFileStreamCif = new FileOutputStream(fileNameCif);
+					BufferedOutputStream outFileCif = new BufferedOutputStream(outFileStreamCif);
+
+					try {
+						Long fileSizeCif = (Long) inStream.readObject();
+
+						int fileSizeCifInt = fileSizeCif.intValue();
+
+						byte[] bufferDataCif = new byte[Math.min(fileSizeCifInt, 1024)];
+
+						int contentLengthCif = inStream.read(bufferDataCif);
+
+						while (fileSizeCifInt > 0 && contentLengthCif > 0) {
+							if (fileSizeCifInt >= contentLengthCif) {
+								outFileCif.write(bufferDataCif, 0, contentLengthCif);
+							} else {
+								outFileCif.write(bufferDataCif, 0, fileSizeCifInt);
+							}
+							contentLengthCif = inStream.read(bufferDataCif);
+							fileSizeCifInt -= contentLengthCif;
+						}
+
+					} catch (ClassNotFoundException e1) {
+						e1.printStackTrace();
+					}
+					outFileCif.close();
+
+					// ---------------Receber Chave Cifrada----------------------
+
+					String fileNameKey = (String) inStream.readObject();
+					System.out.println(fileNameKey);
+
+					//FileOutputStream outFileStreamKey = new FileOutputStream("../cloud/keys/" + fileNameKey);
+					FileOutputStream outFileStreamKey = new FileOutputStream(fileNameKey);
+
+					BufferedOutputStream outFileKey = new BufferedOutputStream(outFileStreamKey);
+
+					try {
+
+						Long fileSizeKey = (Long) inStream.readObject();
+
+						int fileSizeKeyInt = fileSizeKey.intValue();
+
+						byte[] bufferDataKey = new byte[Math.min(fileSizeKeyInt, 1024)];
+
+						int contentLengthKey = inStream.read(bufferDataKey);
+
+						while (fileSizeKeyInt > 0 && contentLengthKey > 0) {
+							if (fileSizeKeyInt >= contentLengthKey) {
+								outFileKey.write(bufferDataKey, 0, contentLengthKey);
+							} else {
+								outFileKey.write(bufferDataKey, 0, fileSizeKeyInt);
+							}
+							contentLengthKey = inStream.read(bufferDataKey);
+							fileSizeKeyInt -= contentLengthKey;
+						}
+
+					} catch (ClassNotFoundException e1) {
+						e1.printStackTrace();
+					}
+					outFileKey.close();
+				} else {
+					System.out.println("The file " + fileName + " already exist in server.");
+				}
+			} else {
+				System.out.println("The file doesn't exist in client.");
+			}
+		}
+	}
+	
+	
+	
+	
+	
+	//TODO
+	private void verifyCommandE2(ObjectInputStream inStream, ObjectOutputStream outStream)
 			throws IOException, ClassNotFoundException {
 
 		int numbersOfFiles = (int) inStream.readObject();
@@ -245,9 +349,9 @@ public class ServerThread extends Thread {
 			
 			outFile.close();
 
-			FileOutputStream outSignature = new FileOutputStream(fileName + ".assinatura");
+			//FileOutputStream outSignature = new FileOutputStream(fileName + ".assinatura");
 
-			outSignature.write((byte[]) inStream.readObject());
+			//outSignature.write((byte[]) inStream.readObject());
 
 			FileOutputStream outCipherKey = new FileOutputStream(fileName + ".chave_secreta");
 
@@ -338,8 +442,6 @@ public class ServerThread extends Thread {
 		while(contentLength > 0) {
 			
 			outStream.write(dataToBytes,0,contentLength);
-			
-			//outStream.flush();
 			
 			contentLength = fileInStream.read(dataToBytes);
 		}

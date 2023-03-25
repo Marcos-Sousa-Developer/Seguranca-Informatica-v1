@@ -140,6 +140,50 @@ public class CommandG {
 		System.out.println("Terminou a decifra");
 	}
 	
+	private void decryptAndVerifySignFile(byte[] signatureInByte, File fileToRead) throws UnrecoverableKeyException, InvalidKeyException, KeyStoreException, NoSuchAlgorithmException, CertificateException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException, IOException, ClassNotFoundException, SignatureException {
+		
+		Signature s = Signature.getInstance("SHA256withRSA");
+		
+		FileInputStream kfile = new FileInputStream(new File("../src/KeyStore.si027"));
+		KeyStore keystore = KeyStore.getInstance("PKCS12");
+		keystore.load(kfile, "si027marcos&rafael".toCharArray()); 
+		Key key = keystore.getKey("si027", "si027marcos&rafael".toCharArray());  
+
+		Certificate cert = keystore.getCertificate("si027");
+		
+		PublicKey publicKey = cert.getPublicKey(); 	
+		
+		s.initVerify(publicKey);
+		
+		FileInputStream fileInStream = new FileInputStream(fileToRead);
+		
+		int totalFileLength = (int) fileInStream.available();
+		
+		byte[] bufferData = new byte[Math.min(totalFileLength, 1024)];
+										
+		int contentFileLength = fileInStream.read(bufferData);
+										
+		while (contentFileLength > 0 && totalFileLength > 0) {
+			if (totalFileLength >= contentFileLength) {
+				s.update(bufferData, 0, contentFileLength);
+			} else {
+				s.update(bufferData, 0, totalFileLength);
+			}
+			totalFileLength -= contentFileLength;
+			contentFileLength = fileInStream.read(bufferData);
+		}
+		
+		fileInStream.close();
+		
+		boolean bool = s.verify(signatureInByte);
+    	
+    	if(bool) {
+            System.out.println("Signature verified");   
+         } else {
+            System.out.println("Signature failed");
+         }
+	}
+	
 	public void sendToServer() throws UnknownHostException, IOException, ClassNotFoundException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, UnrecoverableKeyException, KeyStoreException, CertificateException, IllegalBlockSizeException, SignatureException, BadPaddingException {
 
 		Socket socket = new Socket(this.ip, this.port);
@@ -172,10 +216,18 @@ public class CommandG {
 			
 			else {
 				
+				//byte[] signatureInByte = new byte[256];
+				//inStream.read(signatureInByte);
+				
 				byte[] secretKeyInByte = new byte[256];
 				inStream.read(secretKeyInByte);
 				
+				FileOutputStream f = new FileOutputStream("chaveProv");
+				f.write(secretKeyInByte);
+				f.close();
+				
 				decryptFile(secretKeyInByte, inStream, new FileOutputStream(fileName));
+				//decryptAndVerifySignFile(signatureInByte, new File(fileName));
 				
 			}
 
