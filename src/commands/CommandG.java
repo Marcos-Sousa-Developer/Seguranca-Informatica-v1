@@ -1,5 +1,6 @@
 package commands;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -65,19 +66,52 @@ public class CommandG {
 	}
 	
 	
-	private Signature initVerifySign() throws NoSuchAlgorithmException, CertificateException, IOException, KeyStoreException, InvalidKeyException {
-		FileInputStream kfile = new FileInputStream("KeyStore.si027"); 
-	    KeyStore kstore = KeyStore.getInstance("PKCS12");
-	    kstore.load(kfile, "si027marcos&rafael".toCharArray());
-	    
-	    Certificate cert = kstore.getCertificate("si027");
-	    PublicKey publicKey = cert.getPublicKey( );
-				
+	private void initVerifySign(byte[] signatureInByte, ObjectInputStream inStream, FileOutputStream fileOutput) throws NoSuchAlgorithmException, CertificateException, IOException, KeyStoreException, InvalidKeyException, UnrecoverableKeyException, ClassNotFoundException, SignatureException {
+		
 		Signature s = Signature.getInstance("SHA256withRSA");
+		
+		FileInputStream kfile = new FileInputStream(new File("../src/KeyStore.si027"));
+		KeyStore keystore = KeyStore.getInstance("PKCS12");
+		keystore.load(kfile, "si027marcos&rafael".toCharArray()); 
+		Key key = keystore.getKey("si027", "si027marcos&rafael".toCharArray());  
+
+		Certificate cert = keystore.getCertificate("si027");
+		
+		//obter public key, vai ser usada para cifra hibrida
+		PublicKey publicKey = cert.getPublicKey(); 	
+		
 		s.initVerify(publicKey);
 		
-		return s;
+		int totalFileLength = (int) inStream.readObject();
+		
+		byte[] bufferData = new byte[Math.min(totalFileLength, 1024)];
+										
+		int contentFileLength = inStream.read(bufferData);
+										
+		while (contentFileLength > 0 && totalFileLength > 0) {
+			if (totalFileLength >= contentFileLength) {
+				s.update(bufferData, 0, contentFileLength);
+				fileOutput.write(bufferData, 0, contentFileLength);
+				
+			} else {
+				s.update(bufferData, 0, totalFileLength);
+				fileOutput.write(bufferData, 0, totalFileLength);
+				
+			}
+			totalFileLength -= contentFileLength;
+			contentFileLength = inStream.read(bufferData);
+		}
+		fileOutput.close();
+		
+		boolean bool = s.verify(signatureInByte);
+    	
+    	if(bool) {
+            System.out.println("Signature verified");   
+         } else {
+            System.out.println("Signature failed");
+         }	
 	}
+	
 	
 	public void sendToServer() throws UnknownHostException, IOException, ClassNotFoundException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, UnrecoverableKeyException, KeyStoreException, CertificateException, IllegalBlockSizeException, SignatureException, BadPaddingException {
 
@@ -99,8 +133,21 @@ public class CommandG {
 			} 
 			else if (option.equals("-s")) {
 				
-			} 
+				byte[] signatureInByte = new byte[256];
+				inStream.read(signatureInByte); 
+				
+				initVerifySign(signatureInByte, inStream, new FileOutputStream(fileName));
+			}
+			
 			else {
+			}
+				
+				
+				
+				
+				
+				
+			/*else {
 				
 				Signature s = initVerifySign();
 				
@@ -144,7 +191,6 @@ public class CommandG {
 				else {
 					System.out.println("Message was corrupted");
 				}*/
-			}
 		}
 	}
 }

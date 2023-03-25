@@ -302,9 +302,7 @@ public class ServerThread extends Thread {
 			
 			outStream.write(fileInStreamSignature.readAllBytes()); 
 			
-
-			
-			
+			fileInStreamSignature.close();
 			
 			
 		}
