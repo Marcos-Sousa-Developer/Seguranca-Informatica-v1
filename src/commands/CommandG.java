@@ -171,9 +171,16 @@ public class CommandG {
 			}
 			
 			else {
+				
+				byte[] secretKeyInByte = new byte[256];
+				inStream.read(secretKeyInByte);
+				
+				decryptFile(secretKeyInByte, inStream, new FileOutputStream(fileName));
+				
 			}
 				
 				
+			
 				
 				
 				

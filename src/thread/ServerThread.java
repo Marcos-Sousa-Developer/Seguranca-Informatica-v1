@@ -288,9 +288,7 @@ public class ServerThread extends Thread {
 				sendToClient(outStream, "-e", fileToReadSecure, fileName);
 			
 			}
-				
-		}		
-				
+		}				
 	}
 	
 	private void sendToClient(ObjectOutputStream outStream, String option, File fileToRead, String fileName) throws IOException {
@@ -314,16 +312,15 @@ public class ServerThread extends Thread {
 			
 			fileInStreamSignature.close();
 			
-			
 		}
 		else {
-			FileInputStream fileInStreamSignature = new FileInputStream(fileName + ".assinatura");
+			//FileInputStream fileInStreamSignature = new FileInputStream(fileName + ".assinatura");
 			FileInputStream fileInStreamKey = new FileInputStream(fileName + ".chave_secreta");
 			
-			outStream.write(fileInStreamSignature.readAllBytes());
+			//outStream.write(fileInStreamSignature.readAllBytes());
 			outStream.write(fileInStreamKey.readAllBytes());
 			
-			fileInStreamSignature.close();
+			//fileInStreamSignature.close();
 			fileInStreamKey.close();
 			
 		}

@@ -1,5 +1,6 @@
 package commands;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -156,30 +157,70 @@ public class CommandE {
 			
 		    SecretKey secretkey = getSymetricKey();
 
-		    
 			int totalFileLength = fileInStream.available();
 	        
 	        outStream.writeObject(totalFileLength);
 	        
 	        byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)];
+	        //byte[] dataToBytes2 = new byte[Math.min(totalFileLength, 1024)];
 			
-	        int contentFileLength = fileInStream.read(dataToBytes);  
+	        int contentFileLength = fileInStream.read(dataToBytes);
+	        //dataToBytes2 = dataToBytes;
 	        
 		    Cipher c = Cipher.getInstance("AES");
 		    
 		    c.init(Cipher.ENCRYPT_MODE, secretkey);
 		    
+		    FileOutputStream fos = new FileOutputStream(fileName + ".cifrado");
+		    CipherOutputStream cos = new CipherOutputStream(fos, c); 
 
-	        while (contentFileLength != -1) {
+		    
+		    while (contentFileLength != -1) {
+		        cos.write(dataToBytes, 0, contentFileLength);
+		        contentFileLength = fileInStream.read(dataToBytes);
+		    }
+		    cos.close();
+		    fileInStream.close();
+		    
+		    BufferedInputStream myFileCif = new BufferedInputStream(new FileInputStream(fileName + ".cifrado"));
+		    
+		    File fileCif = new File(fileName + ".cifrado");
+	        Long dimFileCif = fileCif.length();
+		    
+		    int dimFileCifInt = dimFileCif.intValue();
+	        
+			byte[] dataToBytesCif = new byte[Math.min(dimFileCifInt, 1024)]; 
+		    
+			int contentLengthCif = myFileCif.read(dataToBytesCif);
+		    while (contentLengthCif != -1) {
+		    	signature.update(dataToBytes);
+		    	outStream.write(dataToBytesCif, 0, contentLengthCif);
+		    	contentLengthCif = myFileCif.read(dataToBytesCif);
+		    }
+		    
+		    myFileCif.close();
+		    
+		    //BufferedInputStream myFileCif = new BufferedInputStream(fileInStream);
+	        //CipherOutputStream cipherOutStream = new CipherOutputStream(outStream, c);
+		    
+	        //int contentFileLength = myFileCif.read(dataToBytes);
+	        //myFileCif.read(dataToBytes2);
+
+	        /*while (contentFileLength != -1) {
 	        	signature.update(dataToBytes);
-	        	outStream.write(c.update(dataToBytes));
-	        	contentFileLength = fileInStream.read(dataToBytes); 
-	        	
-	        	if(contentFileLength == -1) {
-	        		outStream.write(c.doFinal());
-	        	}
+	        	byte[] byteEncripted = c.update(dataToBytes2, 0, contentFileLength);
+	        	outStream.write(byteEncripted);
+	        	//outStream.write(c.update(dataToBytes));
+	        	contentFileLength = fileInStream.read(dataToBytes);
+	        	dataToBytes2 = dataToBytes;
 	        }
 	        
+	        outStream.write(c.doFinal());
+	        */
+		    
+		    
+		    
+		    
 	        outStream.writeObject(signature.sign());
 	        
 	        outStream.writeObject(cipherKey(secretkey));
