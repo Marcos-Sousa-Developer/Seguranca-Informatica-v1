@@ -89,7 +89,6 @@ public class CommandG {
          }	
 	}
 
-	
 	private Cipher decryptSecretKey(byte[] AESkey) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableKeyException, InvalidKeyException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
 		
 		FileInputStream kfile = new FileInputStream("KeyStore.si027"); 
@@ -110,7 +109,6 @@ public class CommandG {
 	    
 	    return c;
 	}
-	
 	
 	private void decryptFile(byte[] secretKeyInByte, ObjectInputStream inStream,FileOutputStream fileOutput) throws UnrecoverableKeyException, InvalidKeyException, KeyStoreException, NoSuchAlgorithmException, CertificateException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException, IOException, ClassNotFoundException {
 		
@@ -139,6 +137,7 @@ public class CommandG {
 		fileOutput.close();
 		System.out.println("Terminou a decifra");
 	}
+	
 	
 	private void decryptAndVerifySignFile(byte[] signatureInByte, File fileToRead) throws UnrecoverableKeyException, InvalidKeyException, KeyStoreException, NoSuchAlgorithmException, CertificateException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException, IOException, ClassNotFoundException, SignatureException {
 		
@@ -190,6 +189,7 @@ public class CommandG {
 		
 		ObjectOutputStream outStream = new ObjectOutputStream(socket.getOutputStream());
 		ObjectInputStream inStream = new ObjectInputStream(socket.getInputStream());
+		
 		outStream.writeObject("-g");
 		outStream.writeObject(this.files.size());
 		
@@ -216,17 +216,58 @@ public class CommandG {
 			
 			else {
 				
-				//byte[] signatureInByte = new byte[256];
-				//inStream.read(signatureInByte);
+				byte[] signatureInByte = inStream.readAllBytes();
+				 
+				//FileInputStream kos = new FileInputStream("aa.key"); 
+		    	
+		    	//byte[] AESkey = new byte[kos.available()]; 
+		    	
+		    	//kos.read(AESkey);
+				//kos.close();
+		    	
+		    	FileInputStream kfile = new FileInputStream("KeyStore.si027");
+		    	KeyStore kstore = KeyStore.getInstance("PKCS12");
+		    	
+		    	kstore.load(kfile, "si027marcos&rafael".toCharArray()); 
+		    	    	
+		    	Key privatekey = kstore.getKey("si027", "si027marcos&rafael".toCharArray()); 
+		    	
+		    	Cipher cRSA = Cipher.getInstance("RSA");
+
+				cRSA.init(Cipher.UNWRAP_MODE, privatekey);
 				
-				byte[] secretKeyInByte = new byte[256];
+		    	
+		    	Key unwrapkey = cRSA.unwrap(signatureInByte, "AES",  Cipher.SECRET_KEY);
+		    	
+		    	Cipher c = Cipher.getInstance("AES");
+
+				c.init(Cipher.DECRYPT_MODE, unwrapkey);
+
+				FileInputStream fis;
+				FileOutputStream fos;
+				CipherOutputStream cos;
+
+				fis = new FileInputStream("okok.txt.seguro");
+				fos = new FileOutputStream("bb.txt");
+
+				cos = new CipherOutputStream(fos, c);
+				byte[] b = new byte[16];
+				int i = fis.read(b);
+				while (i != -1) {
+					cos.write(b, 0, i);
+					i = fis.read(b);
+				}
+				cos.close();
+				fis.close();
+				
+				/*byte[] secretKeyInByte = new byte[256];
 				inStream.read(secretKeyInByte);
 				
 				FileOutputStream f = new FileOutputStream("chaveProv");
 				f.write(secretKeyInByte);
-				f.close();
+				f.close(); 
 				
-				decryptFile(secretKeyInByte, inStream, new FileOutputStream(fileName));
+				decryptFile(secretKeyInByte, inStream, new FileOutputStream(fileName)); */
 				//decryptAndVerifySignFile(signatureInByte, new File(fileName));
 				
 			}

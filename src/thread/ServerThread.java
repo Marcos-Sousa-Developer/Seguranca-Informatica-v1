@@ -216,159 +216,50 @@ public class ServerThread extends Thread {
 		}
 	}
 	
-	private void verifyCommandE(ObjectInputStream inStream, ObjectOutputStream outStream)
-			throws ClassNotFoundException, IOException {
-		int filesDim = (int) inStream.readObject();
-		System.out.println("filesDim: " + filesDim);
+	private void verifyCommandE(ObjectInputStream inStream, ObjectOutputStream outStream) throws ClassNotFoundException, IOException {
+		
+		int totalFileLength = (int) inStream.readObject(); 
+		
+		FileOutputStream out = new FileOutputStream("okok.txt.seguro");
 
-		for (int i = 0; i < filesDim; i++) {
-
-			System.out.println("-----------New File-----------");
-
-			Boolean fileExistClient = (Boolean) inStream.readObject();
-
-			if (fileExistClient) {
-				String fileName = (String) inStream.readObject();
-
-				//File f = new File("../cloud/files/" + fileName + ".cifrado");
-				File f = new File(fileName + ".seguro");
-
-				Boolean fileExistServer = f.exists();
-
-				outStream.writeObject(fileExistServer);
-
-				if (!fileExistServer) {
-
-					// ---------------Receber Ficheiro Cifrado----------------------
-
-					String fileNameCif = (String) inStream.readObject();
-					System.out.println(fileNameCif);
-
-					//FileOutputStream outFileStreamCif = new FileOutputStream("../cloud/files/" + fileNameCif);
-					FileOutputStream outFileStreamCif = new FileOutputStream(fileNameCif);
-					BufferedOutputStream outFileCif = new BufferedOutputStream(outFileStreamCif);
-
-					try {
-						Long fileSizeCif = (Long) inStream.readObject();
-
-						int fileSizeCifInt = fileSizeCif.intValue();
-
-						byte[] bufferDataCif = new byte[Math.min(fileSizeCifInt, 1024)];
-
-						int contentLengthCif = inStream.read(bufferDataCif);
-
-						while (fileSizeCifInt > 0 && contentLengthCif > 0) {
-							if (fileSizeCifInt >= contentLengthCif) {
-								outFileCif.write(bufferDataCif, 0, contentLengthCif);
-							} else {
-								outFileCif.write(bufferDataCif, 0, fileSizeCifInt);
-							}
-							contentLengthCif = inStream.read(bufferDataCif);
-							fileSizeCifInt -= contentLengthCif;
-						}
-
-					} catch (ClassNotFoundException e1) {
-						e1.printStackTrace();
-					}
-					outFileCif.close();
-
-					// ---------------Receber Chave Cifrada----------------------
-
-					String fileNameKey = (String) inStream.readObject();
-					System.out.println(fileNameKey);
-
-					//FileOutputStream outFileStreamKey = new FileOutputStream("../cloud/keys/" + fileNameKey);
-					FileOutputStream outFileStreamKey = new FileOutputStream(fileNameKey);
-
-					BufferedOutputStream outFileKey = new BufferedOutputStream(outFileStreamKey);
-
-					try {
-
-						Long fileSizeKey = (Long) inStream.readObject();
-
-						int fileSizeKeyInt = fileSizeKey.intValue();
-
-						byte[] bufferDataKey = new byte[Math.min(fileSizeKeyInt, 1024)];
-
-						int contentLengthKey = inStream.read(bufferDataKey);
-
-						while (fileSizeKeyInt > 0 && contentLengthKey > 0) {
-							if (fileSizeKeyInt >= contentLengthKey) {
-								outFileKey.write(bufferDataKey, 0, contentLengthKey);
-							} else {
-								outFileKey.write(bufferDataKey, 0, fileSizeKeyInt);
-							}
-							contentLengthKey = inStream.read(bufferDataKey);
-							fileSizeKeyInt -= contentLengthKey;
-						}
-
-					} catch (ClassNotFoundException e1) {
-						e1.printStackTrace();
-					}
-					outFileKey.close();
-				} else {
-					System.out.println("The file " + fileName + " already exist in server.");
-				}
-			} else {
-				System.out.println("The file doesn't exist in client.");
-			}
-		}
-	}
-	
-	
-	
-	
-	
-	//TODO
-	private void verifyCommandE2(ObjectInputStream inStream, ObjectOutputStream outStream)
-			throws IOException, ClassNotFoundException {
-
-		int numbersOfFiles = (int) inStream.readObject();
-
-		for (int i = 0; i < numbersOfFiles; i++) {
-
-			String fileName = (String) inStream.readObject();
-
-			FileOutputStream outFile = new FileOutputStream(fileName + ".seguro");
-
-			int totalFileLength = (int) inStream.readObject();
-
-			byte[] bufferData = new byte[Math.min(totalFileLength, 1024)];
-
-			int contentFileLength = inStream.read(bufferData);
-
-			while (contentFileLength > 0 && totalFileLength > 0) {
-				if (totalFileLength >= contentFileLength) {
-					outFile.write(bufferData, 0, contentFileLength);
-				} else {
-					outFile.write(bufferData, 0, totalFileLength);
-				}
-				totalFileLength -= contentFileLength;
-				contentFileLength = inStream.read(bufferData);
+		//byte array for file
+		byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)]; 
+		
+		//Length of the contents of the read file 
+		int contentLength = inStream.read(dataToBytes); 
+		
+		while(contentLength > 0  &&  totalFileLength > 0) { 
+			
+			if(contentLength >= totalFileLength) {
+				out.write(dataToBytes,0,contentLength);
+			} 
+			
+			else {
+				out.write(dataToBytes,0,totalFileLength);
 			}
 			
-			outFile.close();
-
-			//FileOutputStream outSignature = new FileOutputStream(fileName + ".assinatura");
-
-			//outSignature.write((byte[]) inStream.readObject());
-
-			FileOutputStream outCipherKey = new FileOutputStream(fileName + ".chave_secreta");
-
-			outCipherKey.write((byte[]) inStream.readObject());
-
+			//continue to read fileInStream
+			totalFileLength -= contentLength;
+			contentLength = inStream.read(dataToBytes);
 		}
-
+		
+		out.close(); 
+		
+		FileOutputStream outKey = new FileOutputStream("okok.txt.chave_secreta"); 
+		
+		outKey.write( (byte[]) inStream.readObject()); 
+		
+		
 	}
-
+	
 	private void verifyCommandG(ObjectInputStream inStream, ObjectOutputStream outStream) throws IOException, ClassNotFoundException {
 		
 		int numbersOfFiles = (int) inStream.readObject();
 				
 		for (int i = 0; i < numbersOfFiles; i++) {
 
-			String fileName = (String) inStream.readObject();
-				
+			String fileName = (String) inStream.readObject(); 
+							
 			File fileToReadSign = new File(fileName + ".assinado");
 			
 			if(fileToReadSign.exists()){
@@ -387,8 +278,8 @@ public class ServerThread extends Thread {
 			
 			File fileToReadSecure = new File(fileName + ".seguro");
 			
-			if(fileToReadSecure.exists()){
-
+			if(fileToReadSecure.exists()){ 
+				
 				sendToClient(outStream, "-e", fileToReadSecure, fileName);
 			
 			}
@@ -397,8 +288,8 @@ public class ServerThread extends Thread {
 	
 	private void sendToClient(ObjectOutputStream outStream, String option, File fileToRead, String fileName) throws IOException {
 		
-		outStream.writeObject(option);
-		
+		outStream.writeObject(option); 
+				
 		if(option.equals("-c")) {
 			
 			FileInputStream fileInStreamSecretKey = new FileInputStream(fileName + ".chave_secreta"); 

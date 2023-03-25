@@ -3,7 +3,6 @@ package commands;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -45,255 +44,136 @@ public class CommandE {
 		this.port = port;
 		this.files = files;
 	}
-	
-	private SecretKey getSymetricKey() throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException {
+				
+	public void sendToServer() throws UnknownHostException, IOException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, SignatureException, UnrecoverableKeyException, KeyStoreException, CertificateException, IllegalBlockSizeException, BadPaddingException {
 		
-		KeyGenerator kg = KeyGenerator.getInstance("AES");
-	    kg.init(128);
-	    SecretKey key = kg.generateKey();
-	    	    
-		return key;
+		
+		Socket socket = new Socket(this.ip, this.port);
+		
+		ObjectOutputStream outStream = new ObjectOutputStream(socket.getOutputStream());
+		ObjectInputStream inStream = new ObjectInputStream(socket.getInputStream());
+		
+		outStream.writeObject("-e");  
+		
+		cifraText(); 
+		
+		cifraChave();
+
+		FileInputStream fileInStream = new FileInputStream("a.cif"); 
+
+		//get total file length
+		int totalFileLength = fileInStream.available();
+		
+		//send to server exact buffer size
+		outStream.writeObject(totalFileLength);
+
+		//byte array for file
+		byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)]; 
+		
+		//Length of the contents of the read file 
+		int contentLength = fileInStream.read(dataToBytes); 
+		
+		//read files chunk 
+		while(contentLength != -1 ) {
+			
+			//send data to server
+			outStream.write(dataToBytes,0,contentLength);
+			//continue to read fileInStream
+			contentLength = fileInStream.read(dataToBytes);
+		}
+		
+		fileInStream.close(); 
+		
+		
+		FileInputStream fileInStreamkey = new FileInputStream("aa.key");  
+		
+		outStream.writeObject(fileInStreamkey.readAllBytes()); 
+		
+		fileInStreamkey.close();
+
 	}
 	
-	private void cipherFile(String fileName) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IOException {
+	public void cifraText() throws NoSuchAlgorithmException, NoSuchPaddingException, IOException, InvalidKeyException {
 		
-		KeyGenerator kg = KeyGenerator.getInstance("AES");
+		/////CHAVEEEEE/////
+		
+	    //gerar uma chave aleatoria para utilizar com o AES
+	    KeyGenerator kg = KeyGenerator.getInstance("AES");
 	    kg.init(128);
 	    SecretKey key = kg.generateKey();
 
 	    Cipher c = Cipher.getInstance("AES");
 	    c.init(Cipher.ENCRYPT_MODE, key);
 
-	    FileInputStream fis = new FileInputStream("../files/" + fileName);
-	    FileOutputStream fos = new FileOutputStream(fileName + ".cifrado");
-	    CipherOutputStream cos = new CipherOutputStream(fos, c);
+	    FileInputStream fis;
+	    FileOutputStream fos;
+	    CipherOutputStream cos;
 	    
-	    int totalFileLength = fis.available();
-		byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)]; 
-	    
-		int contentLength = fis.read(dataToBytes);
-	    while (contentLength != -1) {
-	        cos.write(dataToBytes, 0, contentLength);
-	        contentLength = fis.read(dataToBytes);
+	    fis = new FileInputStream("../files/okok.txt");
+	    fos = new FileOutputStream("a.cif");
+
+	    cos = new CipherOutputStream(fos, c);
+	    byte[] b = new byte[16];  
+	    int i = fis.read(b);
+	    while (i != -1) {
+	        cos.write(b, 0, i);
+	        i = fis.read(b);
 	    }
 	    cos.close();
-	    fis.close();
 
 	    byte[] keyEncoded = key.getEncoded();
-	    FileOutputStream kos = new FileOutputStream(fileName + ".key");
-	    
+	    FileOutputStream kos = new FileOutputStream("a.key");
 	    kos.write(keyEncoded);
 	    kos.close();
+		
 	}
 	
-	private void cipherKey(String fileName) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableKeyException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException {
-		FileInputStream kfile = new FileInputStream("keystore.si027"); 
-	    KeyStore kstore = KeyStore.getInstance("PKCS12");
-	    kstore.load(kfile, "si027marcos&rafael".toCharArray());
-	    
-	    String alias = "si027";
-	    
-	    Key key = kstore.getKey(alias, "si027marcos&rafael".toCharArray());
-	    
-	    if(key instanceof PrivateKey) {
-	    	
-	    	Certificate cert = kstore.getCertificate("si027");
-	    	
-	    	PublicKey publicKey =cert.getPublicKey();
-	    
-		    Cipher cRSA = Cipher.getInstance("RSA");
-		    
-		    cRSA.init(Cipher.WRAP_MODE, publicKey);
-		    
-		    FileInputStream kis = new FileInputStream(fileName + ".key");
-		    
-		    byte[] keyEncoded = new byte [kis.available()];
-		    
-		    kis.read(keyEncoded);
-		    kis.close();
-		    
-		    SecretKey keyAES = new SecretKeySpec(keyEncoded,"AES");
-		    
-		    byte [] chaveAEScifrada = cRSA.wrap(keyAES);
-		    
-		    FileOutputStream kos = new FileOutputStream(fileName + ".chave_secreta");
-		    
-		    kos.write(chaveAEScifrada);
-		    
-		    kos.close();
-		    }
-	}
-	
-	private Signature initSignature() throws NoSuchAlgorithmException {
+	private void cifraChave() throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableKeyException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException {
 		
-		//Set the signature
-		Signature signature = Signature.getInstance("SHA256withRSA");   
-		
-		try {
-			//Read the KeyStore File
-			FileInputStream keyStorefile = new FileInputStream(new File("../src/KeyStore.si027")); 
-			
-			//Alias from set up in KeyStore file
-			String alias = "si027";
-			
-			//Get the instance of keyStore
-			KeyStore kstore = KeyStore.getInstance("PKCS12"); 
-			
-			//verify password and load KeyStore file
-			kstore.load(keyStorefile, "si027marcos&rafael".toCharArray()); 
-			
-			//Get the private key 
-			Key key = kstore.getKey(alias, "si027marcos&rafael".toCharArray()); 
-			
-			//turn key in instance of private key
-			PrivateKey privatekey = (PrivateKey) key; 
-			
-			//Encrypted digital assign
-			signature.initSign(privatekey); 
-						
-		} catch (FileNotFoundException e) {
-			System.out.println("File not found");
-			
-		} catch (KeyStoreException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (CertificateException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (UnrecoverableKeyException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InvalidKeyException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} 
-		
-		return signature;
-	} 
-	
-	//TODO
-	private void cipherKey(SecretKey secretkey, ObjectOutputStream outStream, String fileName) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableKeyException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException {
-		FileInputStream kfile = new FileInputStream("keystore.si027"); 
-	    KeyStore kstore = KeyStore.getInstance("PKCS12");
-	    kstore.load(kfile, "si027marcos&rafael".toCharArray());
-	    
-	    String alias = "si027";
-	    
-	    Key key = kstore.getKey(alias, "si027marcos&rafael".toCharArray());
-	    
-	    Certificate cert = kstore.getCertificate("si027");
     	
-    	PublicKey publicKey = cert.getPublicKey();
-    
-	    Cipher cRSA = Cipher.getInstance("RSA");
-	    
-	    cRSA.init(Cipher.WRAP_MODE, publicKey);
-	    	    
-	    byte[] AESkey = secretkey.getEncoded();
-	    
-	    SecretKey keyAES = new SecretKeySpec(AESkey, "AES");
-	    
-	    byte[] wrappedKey = cRSA.wrap(keyAES);
-	    
-	    FileOutputStream kos = new FileOutputStream("chave" + ".chave_secreta");
-	    
-	    kos.write(wrappedKey);
-	    
-	    kos.close();
-	    
-	    FileInputStream myKeyCif = new FileInputStream("chave" + ".chave_secreta");
-        
-        int dimKeyCifInt = myKeyCif.available();
-        
-		byte[] dataToBytesKey = new byte[dimKeyCifInt]; 
-	    
-	    outStream.writeObject(myKeyCif.readAllBytes());
-        myKeyCif.close();
-	}
-	
-	
-	//TODO
-	public void sendToServer() throws UnknownHostException, IOException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, SignatureException, UnrecoverableKeyException, KeyStoreException, CertificateException, IllegalBlockSizeException, BadPaddingException {
+    	// ler minha keystote
+    	FileInputStream kfile = new FileInputStream("KeyStore.si027");
+    	
+    	//criar key store do tipo
+    	KeyStore keystore = KeyStore.getInstance("PKCS12");
+    	
+    	//qual a password e fazer load
+    	keystore.load(kfile, "si027marcos&rafael".toCharArray());
+    	
+    	//meu utilizador dentro da keysotre
+    	String alias = "si027"; 
+    	
+    	//obter key do utilizador com respetiva pass
+    	Key key = keystore.getKey(alias, "si027marcos&rafael".toCharArray());  
+    	
+    	Certificate cert = keystore.getCertificate(alias);
+    	
+    	//obter public key, vai ser usada para cifra hibrida
+    	PublicKey pubkey = cert.getPublicKey();
+    	
+    	// criar cifra do tipo rsaokokokokokok
+    	Cipher c = Cipher.getInstance("RSA"); 
+    	
+    	//iniciar da cifra no wrap mode com a pub key
+    	c.init(Cipher.WRAP_MODE, pubkey);
+    	
+    	//ler a chave
+    	FileInputStream fis = new FileInputStream("a.key");
+    	
+    	//ler o conteudo dos bytes
+    	byte[] AESkey = new byte[fis.available()]; 
+    	int i = fis.read(AESkey);
+    	fis.close();
+    	
+    	SecretKey keyAES = new SecretKeySpec(AESkey, "AES");
+    	
+    	byte[] wrappedKey = c.wrap(keyAES);	
+    	
+    	FileOutputStream fos = new FileOutputStream("aa.key");
+    	
+    	fos.write(wrappedKey); 
+    	
+    	fos.close();
 		
-		Socket socket = new Socket(this.ip, this.port);
-		
-		ObjectOutputStream outStream = new ObjectOutputStream(socket.getOutputStream());
-		ObjectInputStream inStream = new ObjectInputStream(socket.getInputStream());
-		outStream.writeObject("-e");
-		outStream.writeObject(this.files.size());
-		
-		for (String fileName : this.files) {
-			
-			outStream.writeObject(fileName);
-			
-			File fileToRead = new File("../files/" + fileName);
-			FileInputStream fileInStream = new FileInputStream(fileToRead);
-			
-			Signature signature = initSignature();
-			
-		    SecretKey secretkey = getSymetricKey();
-
-			int totalFileLength = fileInStream.available();
-	        	        
-	        byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)];
-	        //byte[] dataToBytes2 = new byte[Math.min(totalFileLength, 1024)];
-			
-	        int contentFileLength = fileInStream.read(dataToBytes);
-	        //dataToBytes2 = dataToBytes;
-	        
-		    Cipher c = Cipher.getInstance("AES");
-		    
-		    c.init(Cipher.ENCRYPT_MODE, secretkey);
-		    
-		    FileOutputStream fos = new FileOutputStream(fileName + ".cifrado");
-		    CipherOutputStream cos = new CipherOutputStream(fos, c); 
-		    
-		    while (contentFileLength != -1) {
-		        cos.write(dataToBytes, 0, contentFileLength);
-		        //signature.update(dataToBytes);
-		        contentFileLength = fileInStream.read(dataToBytes);
-		    }
-		    cos.close();
-		    fileInStream.close();
-		    
-		    File file = new File (fileName + ".cifrado");
-		    
-		    FileInputStream myFileCif = new FileInputStream(file);
-		    
-		    //File fileCif = new File(fileName + ".cifrado");
-	        //Long dimFileCif = fileCif.length();
-		    
-		    int dimFileCifInt = myFileCif.available();
-	        
-			byte[] dataToBytesCif = new byte[Math.min(dimFileCifInt, 1024)]; 
-		    
-	        outStream.writeObject(dimFileCifInt);
-			
-			int contentLengthCif = myFileCif.read(dataToBytesCif);
-		    while (contentLengthCif != -1) {
-		    	outStream.write(dataToBytesCif, 0, contentLengthCif);
-		    	contentLengthCif = myFileCif.read(dataToBytesCif);
-		    }
-		    
-		    myFileCif.close();
-		    
-	        //outStream.writeObject(signature.sign());
-	        
-	        cipherKey(secretkey, outStream, fileName);
-	        
-	        //File fCif = new File(fileName + ".cifrado");
-	        
-	        file.delete();
-		
-			//falta verificar se existe 
-
-		    
-		}
 	}
 }
