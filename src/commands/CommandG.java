@@ -178,12 +178,7 @@ public class CommandG {
 				decryptFile(secretKeyInByte, inStream, new FileOutputStream(fileName));
 				
 			}
-				
-				
-			
-				
-				
-				
+
 				
 			/*else {
 				

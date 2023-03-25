@@ -339,7 +339,7 @@ public class ServerThread extends Thread {
 			
 			outStream.write(dataToBytes,0,contentLength);
 			
-			outStream.flush();
+			//outStream.flush();
 			
 			contentLength = fileInStream.read(dataToBytes);
 		}
