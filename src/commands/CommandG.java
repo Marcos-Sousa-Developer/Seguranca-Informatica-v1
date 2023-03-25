@@ -138,7 +138,6 @@ public class CommandG {
 		System.out.println("Terminou a decifra");
 	}
 	
-	
 	private void decryptAndVerifySignFile(byte[] signatureInByte, File fileToRead) throws UnrecoverableKeyException, InvalidKeyException, KeyStoreException, NoSuchAlgorithmException, CertificateException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException, IOException, ClassNotFoundException, SignatureException {
 		
 		Signature s = Signature.getInstance("SHA256withRSA");
@@ -216,15 +215,8 @@ public class CommandG {
 			
 			else {
 				
-				byte[] signatureInByte = inStream.readAllBytes();
-				 
-				//FileInputStream kos = new FileInputStream("aa.key"); 
-		    	
-		    	//byte[] AESkey = new byte[kos.available()]; 
-		    	
-		    	//kos.read(AESkey);
-				//kos.close();
-		    	
+				byte[] secretKeyInByte = inStream.readAllBytes();
+				
 		    	FileInputStream kfile = new FileInputStream("KeyStore.si027");
 		    	KeyStore kstore = KeyStore.getInstance("PKCS12");
 		    	
@@ -236,87 +228,29 @@ public class CommandG {
 
 				cRSA.init(Cipher.UNWRAP_MODE, privatekey);
 				
-		    	
-		    	Key unwrapkey = cRSA.unwrap(signatureInByte, "AES",  Cipher.SECRET_KEY);
+		    	Key unwrapkey = cRSA.unwrap(secretKeyInByte, "AES",  Cipher.SECRET_KEY);
 		    	
 		    	Cipher c = Cipher.getInstance("AES");
 
 				c.init(Cipher.DECRYPT_MODE, unwrapkey);
 
-				FileInputStream fis;
-				FileOutputStream fos;
-				CipherOutputStream cos;
+				FileInputStream fis = new FileInputStream(fileName + ".seguro");
+				FileOutputStream fos = new FileOutputStream(fileName);
+				CipherOutputStream cos = new CipherOutputStream(fos, c);
 
-				fis = new FileInputStream("okok.txt.seguro");
-				fos = new FileOutputStream("bb.txt");
-
-				cos = new CipherOutputStream(fos, c);
-				byte[] b = new byte[16];
-				int i = fis.read(b);
-				while (i != -1) {
-					cos.write(b, 0, i);
-					i = fis.read(b);
+				int totalFileLength = fis.available();
+				byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)];
+				
+				int contentFileLength = fis.read(dataToBytes);
+				while (contentFileLength > 0 && totalFileLength > 0) {
+					cos.write(dataToBytes, 0, contentFileLength);
+					totalFileLength -= contentFileLength;
+					contentFileLength = fis.read(dataToBytes);
 				}
 				cos.close();
 				fis.close();
-				
-				/*byte[] secretKeyInByte = new byte[256];
-				inStream.read(secretKeyInByte);
-				
-				FileOutputStream f = new FileOutputStream("chaveProv");
-				f.write(secretKeyInByte);
-				f.close(); 
-				
-				decryptFile(secretKeyInByte, inStream, new FileOutputStream(fileName)); */
-				//decryptAndVerifySignFile(signatureInByte, new File(fileName));
-				
+		
 			}
-
-				
-			/*else {
-				
-				Signature s = initVerifySign();
-				
-				byte[] signatureInByte = new byte[256];
-				inStream.read(signatureInByte);
-								
-				byte[] key = new byte[256];
-				inStream.read(key);
-				
-				Cipher cipher = decryptKey(key);
-				
-				FileOutputStream outFile = new FileOutputStream(fileName);
-				
-				CipherOutputStream cos = new CipherOutputStream(outFile, cipher);
-				
-				int totalFileLength = (int) inStream.readObject();
-			
-				byte[] bufferData = new byte[Math.min(totalFileLength, 1024)];
-												
-				int contentFileLength = inStream.read(bufferData);
-												
-				while (contentFileLength > 0 && totalFileLength > 0) {
-					if (totalFileLength >= contentFileLength) {
-						cos.write(bufferData, 0, contentFileLength);
-						
-					} else {
-						cos.write(bufferData, 0, totalFileLength);
-						
-					}
-					totalFileLength -= contentFileLength;
-					contentFileLength = inStream.read(bufferData);
-				}
-				cos.close();
-				
-				
-				/*
-				if (s.verify(signatureInByte)) {
-					System.out.println("Message is valid");
-					
-				}
-				else {
-					System.out.println("Message was corrupted");
-				}*/
 		}
 	}
 }

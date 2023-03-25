@@ -44,60 +44,9 @@ public class CommandE {
 		this.port = port;
 		this.files = files;
 	}
-				
-	public void sendToServer() throws UnknownHostException, IOException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, SignatureException, UnrecoverableKeyException, KeyStoreException, CertificateException, IllegalBlockSizeException, BadPaddingException {
-		
-		
-		Socket socket = new Socket(this.ip, this.port);
-		
-		ObjectOutputStream outStream = new ObjectOutputStream(socket.getOutputStream());
-		ObjectInputStream inStream = new ObjectInputStream(socket.getInputStream());
-		
-		outStream.writeObject("-e");  
-		
-		cifraText(); 
-		
-		cifraChave();
-
-		FileInputStream fileInStream = new FileInputStream("a.cif"); 
-
-		//get total file length
-		int totalFileLength = fileInStream.available();
-		
-		//send to server exact buffer size
-		outStream.writeObject(totalFileLength);
-
-		//byte array for file
-		byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)]; 
-		
-		//Length of the contents of the read file 
-		int contentLength = fileInStream.read(dataToBytes); 
-		
-		//read files chunk 
-		while(contentLength != -1 ) {
-			
-			//send data to server
-			outStream.write(dataToBytes,0,contentLength);
-			//continue to read fileInStream
-			contentLength = fileInStream.read(dataToBytes);
-		}
-		
-		fileInStream.close(); 
-		
-		
-		FileInputStream fileInStreamkey = new FileInputStream("aa.key");  
-		
-		outStream.writeObject(fileInStreamkey.readAllBytes()); 
-		
-		fileInStreamkey.close();
-
-	}
 	
-	public void cifraText() throws NoSuchAlgorithmException, NoSuchPaddingException, IOException, InvalidKeyException {
+	private void cipherFile(String fileName) throws NoSuchAlgorithmException, NoSuchPaddingException, IOException, InvalidKeyException {
 		
-		/////CHAVEEEEE/////
-		
-	    //gerar uma chave aleatoria para utilizar com o AES
 	    KeyGenerator kg = KeyGenerator.getInstance("AES");
 	    kg.init(128);
 	    SecretKey key = kg.generateKey();
@@ -105,32 +54,30 @@ public class CommandE {
 	    Cipher c = Cipher.getInstance("AES");
 	    c.init(Cipher.ENCRYPT_MODE, key);
 
-	    FileInputStream fis;
-	    FileOutputStream fos;
-	    CipherOutputStream cos;
-	    
-	    fis = new FileInputStream("../files/okok.txt");
-	    fos = new FileOutputStream("a.cif");
+	    FileInputStream fis = new FileInputStream("../files/" + fileName);
+	    FileOutputStream fos = new FileOutputStream(fileName + ".seguro");
+	    CipherOutputStream cos = new CipherOutputStream(fos, c);
 
-	    cos = new CipherOutputStream(fos, c);
-	    byte[] b = new byte[16];  
-	    int i = fis.read(b);
+	    int totalFileLength = fis.available();
+		byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)];
+		
+	    int i = fis.read(dataToBytes);
 	    while (i != -1) {
-	        cos.write(b, 0, i);
-	        i = fis.read(b);
+	        cos.write(dataToBytes, 0, i);
+	        i = fis.read(dataToBytes);
 	    }
 	    cos.close();
+	    fis.close();
 
 	    byte[] keyEncoded = key.getEncoded();
-	    FileOutputStream kos = new FileOutputStream("a.key");
+	    FileOutputStream kos = new FileOutputStream(fileName + ".key");
 	    kos.write(keyEncoded);
 	    kos.close();
 		
 	}
 	
-	private void cifraChave() throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableKeyException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException {
+	private void cipherKey(String fileName) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableKeyException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException {
 		
-    	
     	// ler minha keystote
     	FileInputStream kfile = new FileInputStream("KeyStore.si027");
     	
@@ -158,22 +105,97 @@ public class CommandE {
     	c.init(Cipher.WRAP_MODE, pubkey);
     	
     	//ler a chave
-    	FileInputStream fis = new FileInputStream("a.key");
+    	FileInputStream fis = new FileInputStream(fileName + ".key");
     	
     	//ler o conteudo dos bytes
     	byte[] AESkey = new byte[fis.available()]; 
-    	int i = fis.read(AESkey);
+    	int i = fis.read(AESkey); //NÃO FOI USADO
     	fis.close();
     	
     	SecretKey keyAES = new SecretKeySpec(AESkey, "AES");
     	
     	byte[] wrappedKey = c.wrap(keyAES);	
     	
-    	FileOutputStream fos = new FileOutputStream("aa.key");
+    	FileOutputStream fos = new FileOutputStream(fileName + ".chave_secreta");
     	
     	fos.write(wrappedKey); 
     	
     	fos.close();
+	}
+	
+	public void sendToServer() throws UnknownHostException, IOException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, SignatureException, UnrecoverableKeyException, KeyStoreException, CertificateException, IllegalBlockSizeException, BadPaddingException, ClassNotFoundException {
 		
+		Socket socket = new Socket(this.ip, this.port);
+		
+		ObjectOutputStream outStream = new ObjectOutputStream(socket.getOutputStream());
+		ObjectInputStream inStream = new ObjectInputStream(socket.getInputStream());
+		
+		outStream.writeObject("-e");  
+		outStream.writeObject(this.files.size());
+		
+		for (String fileName : this.files) {
+			
+			File f = new File("../files/" + fileName);
+			
+			Boolean fileExistClient = f.exists();
+			
+			if(fileExistClient) {//
+				outStream.writeObject(fileExistClient);
+				outStream.writeObject(fileName);
+				
+				Boolean fileExistServer = (Boolean) inStream.readObject();
+				
+				if(!fileExistServer) {
+		
+					cipherFile(fileName); 
+					cipherKey(fileName);
+			
+					FileInputStream fileInStream = new FileInputStream(fileName + ".seguro");
+			
+					//get total file length
+					int totalFileLength = fileInStream.available();
+					
+					//send to server exact buffer size
+					outStream.writeObject(totalFileLength);
+			
+					//byte array for file
+					byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)]; 
+					
+					//Length of the contents of the read file 
+					int contentLength = fileInStream.read(dataToBytes); 
+					
+					//read files chunk 
+					while(contentLength != -1 ) {
+						//send data to server
+						outStream.write(dataToBytes,0,contentLength);
+						//continue to read fileInStream
+						contentLength = fileInStream.read(dataToBytes);
+					}
+					fileInStream.close(); 
+					
+					FileInputStream fileInStreamkey = new FileInputStream(fileName + ".chave_secreta");  
+					
+					outStream.writeObject(fileInStreamkey.readAllBytes());
+					
+					fileInStreamkey.close();
+					
+					System.out.println("The file " + fileName + " have been sent correctly.");
+					
+					/*File fCif = new File(fileName + ".seguro");
+			        File fKey = new File(fileName + ".key");
+			        File fKeyCif = new File(fileName + ".chave_secreta");
+			        
+			        fCif.delete();
+			        fKey.delete();
+			        fKeyCif.delete();*/
+				}
+				else {
+					System.err.println("The file " + fileName + " already exist in server.");
+				}
+			} else {
+				outStream.writeObject(fileExistClient);
+				System.err.println("The file " + fileName + " doesn't exist. You must provide a existing file.");
+			}
+		}
 	}
 }

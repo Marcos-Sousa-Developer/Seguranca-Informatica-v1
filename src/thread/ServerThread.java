@@ -52,7 +52,6 @@ public class ServerThread extends Thread {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
 	}
 
 	private void verifyCommandC(ObjectInputStream inStream, ObjectOutputStream outStream)
@@ -218,38 +217,62 @@ public class ServerThread extends Thread {
 	
 	private void verifyCommandE(ObjectInputStream inStream, ObjectOutputStream outStream) throws ClassNotFoundException, IOException {
 		
-		int totalFileLength = (int) inStream.readObject(); 
+		int numFiles = (int) inStream.readObject(); 
 		
-		FileOutputStream out = new FileOutputStream("okok.txt.seguro");
+		for (int i = 0; i < numFiles; i++) {
+			
+			Boolean fileExistClient = (Boolean) inStream.readObject();
+		
+			if (fileExistClient) {
+				String fileName = (String) inStream.readObject();
 
-		//byte array for file
-		byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)]; 
+				File f = new File(fileName + ".seguro");
+				
+				Boolean fileExistServer = f.exists();
+
+				outStream.writeObject(fileExistServer);
+
+				if (!fileExistServer) {
 		
-		//Length of the contents of the read file 
-		int contentLength = inStream.read(dataToBytes); 
-		
-		while(contentLength > 0  &&  totalFileLength > 0) { 
+					FileOutputStream out = new FileOutputStream(fileName + ".seguro");
+					
+					int totalFileLength = (int) inStream.readObject();
 			
-			if(contentLength >= totalFileLength) {
-				out.write(dataToBytes,0,contentLength);
-			} 
-			
-			else {
-				out.write(dataToBytes,0,totalFileLength);
+					//byte array for file
+					byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)]; 
+					
+					//Length of the contents of the read file 
+					int contentLength = inStream.read(dataToBytes); 
+					
+					while(contentLength > 0  &&  totalFileLength > 0) { 
+						
+						if(contentLength >= totalFileLength) {
+							out.write(dataToBytes,0,contentLength);
+						} 
+						
+						else {
+							out.write(dataToBytes,0,totalFileLength);
+						}
+						
+						//continue to read fileInStream
+						totalFileLength -= contentLength;
+						contentLength = inStream.read(dataToBytes);
+					}
+					
+					out.close(); 
+					
+					FileOutputStream outKey = new FileOutputStream(fileName + ".chave_secreta"); 
+					
+					outKey.write((byte[]) inStream.readObject()); 
+					
+					outKey.close();
+				} else {
+					System.out.println("The file " + fileName + " already exist in server.");
+				}
+			} else {
+				System.out.println("The file doesn't exist in client.");
 			}
-			
-			//continue to read fileInStream
-			totalFileLength -= contentLength;
-			contentLength = inStream.read(dataToBytes);
 		}
-		
-		out.close(); 
-		
-		FileOutputStream outKey = new FileOutputStream("okok.txt.chave_secreta"); 
-		
-		outKey.write( (byte[]) inStream.readObject()); 
-		
-		
 	}
 	
 	private void verifyCommandG(ObjectInputStream inStream, ObjectOutputStream outStream) throws IOException, ClassNotFoundException {
