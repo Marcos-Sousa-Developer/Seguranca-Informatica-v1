@@ -69,7 +69,8 @@ public class ServerThread extends Thread {
 			if (fileExistClient) {
 				String fileName = (String) inStream.readObject();
 
-				File f = new File("../cloud/files/" + fileName + ".cifrado");
+				//File f = new File("../cloud/files/" + fileName + ".cifrado");
+				File f = new File(fileName + ".cifrado");
 
 				Boolean fileExistServer = f.exists();
 
@@ -82,7 +83,8 @@ public class ServerThread extends Thread {
 					String fileNameCif = (String) inStream.readObject();
 					System.out.println(fileNameCif);
 
-					FileOutputStream outFileStreamCif = new FileOutputStream("../cloud/files/" + fileNameCif);
+					//FileOutputStream outFileStreamCif = new FileOutputStream("../cloud/files/" + fileNameCif);
+					FileOutputStream outFileStreamCif = new FileOutputStream(fileNameCif);
 					BufferedOutputStream outFileCif = new BufferedOutputStream(outFileStreamCif);
 
 					try {
@@ -114,7 +116,9 @@ public class ServerThread extends Thread {
 					String fileNameKey = (String) inStream.readObject();
 					System.out.println(fileNameKey);
 
-					FileOutputStream outFileStreamKey = new FileOutputStream("../cloud/keys/" + fileNameKey);
+					//FileOutputStream outFileStreamKey = new FileOutputStream("../cloud/keys/" + fileNameKey);
+					FileOutputStream outFileStreamKey = new FileOutputStream(fileNameKey);
+
 					BufferedOutputStream outFileKey = new BufferedOutputStream(outFileStreamKey);
 
 					try {
@@ -294,6 +298,12 @@ public class ServerThread extends Thread {
 		outStream.writeObject(option);
 		
 		if(option.equals("-c")) {
+			
+			FileInputStream fileInStreamSecretKey = new FileInputStream(fileName + ".chave_secreta"); 
+			
+			outStream.write(fileInStreamSecretKey.readAllBytes());
+			
+			fileInStreamSecretKey.close();
 			
 		} 
 		else if (option.equals("-s")) {

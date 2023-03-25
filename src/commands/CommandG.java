@@ -43,29 +43,6 @@ public class CommandG {
 		this.files = files;
 	}
 	
-	private Cipher decryptKey(byte[] AESkey) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableKeyException, InvalidKeyException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
-		
-		FileInputStream kfile = new FileInputStream("KeyStore.si027"); 
-	    KeyStore kstore = KeyStore.getInstance("PKCS12");
-	    kstore.load(kfile, "si027marcos&rafael".toCharArray());
-	    
-	    Key privateKey = kstore.getKey("si027", "si027marcos&rafael".toCharArray());
-		
-	    Cipher cRSA = Cipher.getInstance("RSA");
-	    
-	    cRSA.init(Cipher.UNWRAP_MODE, privateKey);
-
-	    Key unwrappedKey = cRSA.unwrap(AESkey, "AES", Cipher.SECRET_KEY);
-	    
-	    Cipher c = Cipher.getInstance("AES");
-        
-        c.init(Cipher.DECRYPT_MODE, unwrappedKey);
-
-	    
-	    return c;
-	}
-	
-	
 	private void initVerifySign(byte[] signatureInByte, ObjectInputStream inStream, FileOutputStream fileOutput) throws NoSuchAlgorithmException, CertificateException, IOException, KeyStoreException, InvalidKeyException, UnrecoverableKeyException, ClassNotFoundException, SignatureException {
 		
 		Signature s = Signature.getInstance("SHA256withRSA");
@@ -111,7 +88,57 @@ public class CommandG {
             System.out.println("Signature failed");
          }	
 	}
+
 	
+	private Cipher decryptSecretKey(byte[] AESkey) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableKeyException, InvalidKeyException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
+		
+		FileInputStream kfile = new FileInputStream("KeyStore.si027"); 
+	    KeyStore kstore = KeyStore.getInstance("PKCS12");
+	    kstore.load(kfile, "si027marcos&rafael".toCharArray());
+	    
+	    Key privateKey = kstore.getKey("si027", "si027marcos&rafael".toCharArray());
+		
+	    Cipher cRSA = Cipher.getInstance("RSA");
+	    
+	    cRSA.init(Cipher.UNWRAP_MODE, privateKey);
+
+	    Key unwrappedKey = cRSA.unwrap(AESkey, "AES", Cipher.SECRET_KEY);
+	    
+	    Cipher c = Cipher.getInstance("AES");
+        
+        c.init(Cipher.DECRYPT_MODE, unwrappedKey);
+	    
+	    return c;
+	}
+	
+	
+	private void decryptFile(byte[] secretKeyInByte, ObjectInputStream inStream,FileOutputStream fileOutput) throws UnrecoverableKeyException, InvalidKeyException, KeyStoreException, NoSuchAlgorithmException, CertificateException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException, IOException, ClassNotFoundException {
+		
+		Cipher c = decryptSecretKey(secretKeyInByte);
+		
+		CipherOutputStream cipherOut= new CipherOutputStream(fileOutput, c);
+		
+		int totalFileLength = (int) inStream.readObject();
+		
+		byte[] bufferData = new byte[Math.min(totalFileLength, 1024)];
+										
+		int contentFileLength = inStream.read(bufferData);
+										
+		while (contentFileLength > 0 && totalFileLength > 0) {
+			if (totalFileLength >= contentFileLength) {
+				cipherOut.write(bufferData, 0, contentFileLength);
+				
+			} else {
+				cipherOut.write(bufferData, 0, totalFileLength);
+				
+			}
+			totalFileLength -= contentFileLength;
+			contentFileLength = inStream.read(bufferData);
+		}
+		cipherOut.close();
+		fileOutput.close();
+		System.out.println("Terminou a decifra");
+	}
 	
 	public void sendToServer() throws UnknownHostException, IOException, ClassNotFoundException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, UnrecoverableKeyException, KeyStoreException, CertificateException, IllegalBlockSizeException, SignatureException, BadPaddingException {
 
@@ -130,6 +157,10 @@ public class CommandG {
 			
 			if(option.equals("-c")) {
 				
+				byte[] secretKeyInByte = new byte[256];
+				inStream.read(secretKeyInByte);
+
+				decryptFile(secretKeyInByte, inStream, new FileOutputStream(fileName));
 			} 
 			else if (option.equals("-s")) {
 				
