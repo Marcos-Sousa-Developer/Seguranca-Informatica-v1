@@ -112,7 +112,7 @@ public class CommandS {
 		
 		for (String fileName : this.files) {
 			
-			File fileToRead = new File("../src/"+fileName);
+			File fileToRead = new File("../files/"+fileName);
 			
 			if(fileToRead.exists()) {
 				

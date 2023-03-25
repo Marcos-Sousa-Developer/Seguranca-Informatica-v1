@@ -21,7 +21,9 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.util.List;
 
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
@@ -40,7 +42,8 @@ public class CommandG {
 		this.files = files;
 	}
 	
-	private Cipher decryptKey(byte[] AESkey) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableKeyException, InvalidKeyException, NoSuchPaddingException {
+	private Cipher decryptKey(byte[] AESkey) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableKeyException, InvalidKeyException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
+		
 		FileInputStream kfile = new FileInputStream("KeyStore.si027"); 
 	    KeyStore kstore = KeyStore.getInstance("PKCS12");
 	    kstore.load(kfile, "si027marcos&rafael".toCharArray());
@@ -50,12 +53,13 @@ public class CommandG {
 	    Cipher cRSA = Cipher.getInstance("RSA");
 	    
 	    cRSA.init(Cipher.UNWRAP_MODE, privateKey);
-	    
-	    Key unwrapKey = cRSA.unwrap(AESkey, "AES", Cipher.SECRET_KEY);
+
+	    Key unwrappedKey = cRSA.unwrap(AESkey, "AES", Cipher.SECRET_KEY);
 	    
 	    Cipher c = Cipher.getInstance("AES");
+        
+        c.init(Cipher.DECRYPT_MODE, unwrappedKey);
 
-	    c.init(Cipher.DECRYPT_MODE, unwrapKey);
 	    
 	    return c;
 	}
@@ -75,7 +79,7 @@ public class CommandG {
 		return s;
 	}
 	
-	public void sendToServer() throws UnknownHostException, IOException, ClassNotFoundException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, UnrecoverableKeyException, KeyStoreException, CertificateException, IllegalBlockSizeException, SignatureException {
+	public void sendToServer() throws UnknownHostException, IOException, ClassNotFoundException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, UnrecoverableKeyException, KeyStoreException, CertificateException, IllegalBlockSizeException, SignatureException, BadPaddingException {
 
 		Socket socket = new Socket(this.ip, this.port);
 		
@@ -100,9 +104,11 @@ public class CommandG {
 				
 				Signature s = initVerifySign();
 				
-				byte[] signatureInByte = (byte[]) inStream.readObject();
-
-				byte[] key = (byte[]) inStream.readObject();
+				byte[] signatureInByte = new byte[256];
+				inStream.read(signatureInByte);
+								
+				byte[] key = new byte[256];
+				inStream.read(key);
 				
 				Cipher cipher = decryptKey(key);
 				
@@ -113,31 +119,31 @@ public class CommandG {
 				int totalFileLength = (int) inStream.readObject();
 			
 				byte[] bufferData = new byte[Math.min(totalFileLength, 1024)];
-				
+												
 				int contentFileLength = inStream.read(bufferData);
-				
-				System.out.println(contentFileLength);
-				
+												
 				while (contentFileLength > 0 && totalFileLength > 0) {
 					if (totalFileLength >= contentFileLength) {
 						cos.write(bufferData, 0, contentFileLength);
-						s.update(bufferData, 0, contentFileLength);
+						
 					} else {
 						cos.write(bufferData, 0, totalFileLength);
-						s.update(bufferData, 0, totalFileLength);
+						
 					}
 					totalFileLength -= contentFileLength;
 					contentFileLength = inStream.read(bufferData);
 				}
-
+				cos.close();
+				
+				
+				/*
 				if (s.verify(signatureInByte)) {
 					System.out.println("Message is valid");
-					cos.close();
+					
 				}
 				else {
 					System.out.println("Message was corrupted");
-					cos.close();
-				}
+				}*/
 			}
 		}
 	}

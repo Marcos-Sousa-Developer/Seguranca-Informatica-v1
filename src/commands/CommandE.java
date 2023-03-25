@@ -31,6 +31,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 public class CommandE {
 
@@ -49,6 +50,7 @@ public class CommandE {
 		KeyGenerator kg = KeyGenerator.getInstance("AES");
 	    kg.init(128);
 	    SecretKey key = kg.generateKey();
+	    	    
 		return key;
 	}
 	
@@ -106,7 +108,7 @@ public class CommandE {
 	} 
 	
 	
-	private Cipher cipherKey() throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableKeyException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException {
+	private byte[] cipherKey(SecretKey secretkey) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableKeyException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException {
 		FileInputStream kfile = new FileInputStream("KeyStore.si027"); 
 	    KeyStore kstore = KeyStore.getInstance("PKCS12");
 	    kstore.load(kfile, "si027marcos&rafael".toCharArray());
@@ -117,13 +119,20 @@ public class CommandE {
 	    
 	    Certificate cert = kstore.getCertificate("si027");
     	
-    	PublicKey publicKey =cert.getPublicKey();
+    	PublicKey publicKey = cert.getPublicKey();
     
 	    Cipher cRSA = Cipher.getInstance("RSA");
 	    
 	    cRSA.init(Cipher.WRAP_MODE, publicKey);
+	    	    
+	    byte[] AESkey = secretkey.getEncoded();
 	    
-	    return cRSA;
+	    SecretKey keyAES = new SecretKeySpec(AESkey, "AES");
+	    
+	    byte[] wrappedkey = cRSA.wrap(keyAES);
+	    
+	    return wrappedkey;
+	    
 	}
 	
 	
@@ -144,10 +153,9 @@ public class CommandE {
 			FileInputStream fileInStream = new FileInputStream(fileToRead);
 			
 			Signature signature = initSignature();
-			SecretKey key = getSymetricKey();
 			
-			Cipher c = Cipher.getInstance("AES");
-		    c.init(Cipher.ENCRYPT_MODE, key);
+		    SecretKey secretkey = getSymetricKey();
+
 		    
 			int totalFileLength = fileInStream.available();
 	        
@@ -155,7 +163,12 @@ public class CommandE {
 	        
 	        byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)];
 			
-	        int contentFileLength = fileInStream.read(dataToBytes); 
+	        int contentFileLength = fileInStream.read(dataToBytes);  
+	        
+		    Cipher c = Cipher.getInstance("AES");
+		    
+		    c.init(Cipher.ENCRYPT_MODE, secretkey);
+		    
 
 	        while (contentFileLength != -1) {
 	        	signature.update(dataToBytes);
@@ -169,15 +182,8 @@ public class CommandE {
 	        
 	        outStream.writeObject(signature.sign());
 	        
-	        Cipher cRSA = cipherKey();
-	        
-	        outStream.writeObject(cRSA.wrap(key));
+	        outStream.writeObject(cipherKey(secretkey));
 
-	        
-	        
-	        
-	        
-	        
 		
 			//falta verificar se existe 
 			

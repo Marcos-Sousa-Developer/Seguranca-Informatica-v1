@@ -1,6 +1,8 @@
 package thread;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -296,34 +298,50 @@ public class ServerThread extends Thread {
 		} 
 		else if (option.equals("-s")) {
 			
+			FileInputStream fileInStreamSignature = new FileInputStream(fileName + ".assinatura"); 
+			
+			outStream.write(fileInStreamSignature.readAllBytes()); 
+			
+
+			
+			
+			
+			
 		}
 		else {
 			FileInputStream fileInStreamSignature = new FileInputStream(fileName + ".assinatura");
 			FileInputStream fileInStreamKey = new FileInputStream(fileName + ".chave_secreta");
 			
-			outStream.writeObject(fileInStreamSignature.readAllBytes());
-			outStream.writeObject(fileInStreamKey.readAllBytes());
+			outStream.write(fileInStreamSignature.readAllBytes());
+			outStream.write(fileInStreamKey.readAllBytes());
+			
+			fileInStreamSignature.close();
+			fileInStreamKey.close();
+			
 		}
 
 		FileInputStream fileInStream = new FileInputStream(fileToRead); 
-		
+				
 		int totalFileLength = fileInStream.available();
 		
 		outStream.writeObject(totalFileLength);
 
-		byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)]; 
+		byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)];
 		
 		int contentLength = fileInStream.read(dataToBytes); 
-		
-		while(contentLength != -1) {
+						
+		while(contentLength > 0) {
 			
-			outStream.write(dataToBytes, 0, contentLength);
+			outStream.write(dataToBytes,0,contentLength);
+			
+			outStream.flush();
 			
 			contentLength = fileInStream.read(dataToBytes);
 		}
-	
 		
-
+		fileInStream.close();
+	
+	
 	}
 	
 }
