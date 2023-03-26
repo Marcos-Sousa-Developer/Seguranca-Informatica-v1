@@ -71,7 +71,7 @@ public class CommandG {
 		//get total file length
 		int totalFileLength =  fileToVerify.available();
 		
-		byte[] bufferData = new byte[Math.min(totalFileLength, 1024)];
+		byte[] bufferData = new byte[Math.min(totalFileLength==0 ? 1 : totalFileLength , 1024)];
 										
 		int contentFileLength = fileToVerify.read(bufferData);
 		
@@ -135,7 +135,7 @@ public class CommandG {
 		
 		int totalFileLength = (int) inStream.readObject();
 		
-		byte[] bufferData = new byte[Math.min(totalFileLength, 1024)];
+		byte[] bufferData = new byte[Math.min(totalFileLength==0 ? 1 : totalFileLength , 1024)];
 										
 		int contentFileLength = inStream.read(bufferData);
 										
@@ -226,7 +226,7 @@ public class CommandG {
 										
 						int totalFileLength = (int) inStream.readObject();
 						
-						byte[] bufferData = new byte[Math.min(totalFileLength, 1024)];
+						byte[] bufferData = new byte[Math.min(totalFileLength==0 ? 1 : totalFileLength , 1024)];
 														
 						int contentFileLength = inStream.read(bufferData);
 						

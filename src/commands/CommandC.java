@@ -67,7 +67,7 @@ public class CommandC {
 	    CipherOutputStream cos = new CipherOutputStream(fos, c);
 	    
 	    int totalFileLength = fis.available();
-		byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)]; 
+		byte[] dataToBytes = new byte[Math.min(totalFileLength==0 ? 1 : totalFileLength , 1024)]; 
 	    
 		int contentLength = fis.read(dataToBytes);
 	    while (contentLength > 0) {

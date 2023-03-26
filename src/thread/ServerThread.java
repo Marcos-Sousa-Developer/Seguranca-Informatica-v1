@@ -196,7 +196,7 @@ public class ServerThread extends Thread {
 					int totalFileLength = (int) inStream.readObject();
 
 					// Buffer
-					byte[] bufferData = new byte[Math.min(totalFileLength, 1024)];
+					byte[] bufferData = new byte[Math.min(totalFileLength==0 ? 1 : totalFileLength , 1024)];
 
 					// Read chunk file
 					int contentLength = inStream.read(bufferData);
@@ -270,7 +270,7 @@ public class ServerThread extends Thread {
 					int totalFileLength = (int) inStream.readObject();
 			
 					//byte array for file
-					byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)]; 
+					byte[] dataToBytes = new byte[Math.min(totalFileLength==0 ? 1 : totalFileLength , 1024)]; 
 					
 					//Length of the contents of the read file 
 					int contentLength = inStream.read(dataToBytes); 
@@ -408,7 +408,7 @@ public class ServerThread extends Thread {
 		
 		outStream.writeObject(totalFileLength);
 
-		byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)];
+		byte[] dataToBytes = new byte[Math.min(totalFileLength==0 ? 1 : totalFileLength , 1024)];
 		
 		int contentLength = fileInStream.read(dataToBytes);  
 								
