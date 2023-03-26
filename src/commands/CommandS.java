@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.ConnectException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.InvalidKeyException;
@@ -72,8 +73,19 @@ public class CommandS {
 	
 	public void sendToServer() throws UnknownHostException, IOException, NoSuchAlgorithmException, SignatureException, ClassNotFoundException, UnrecoverableKeyException, InvalidKeyException, KeyStoreException, CertificateException {
 		
-		//Set the server
-		Socket socket = new Socket(this.ip, this.port);
+		Socket socket = null;
+		try {
+			 socket = new Socket(this.ip, this.port);
+		}
+		catch (ConnectException e) {
+			System.out.println("Connection refused, please check the Port");
+			System.exit(-1);
+		}
+		catch (UnknownHostException e) {
+			
+			System.out.println("Connection refused, please check the Host");
+			System.exit(-1);
+		}
 		
 		//Send data to server
 		ObjectOutputStream outStream = new ObjectOutputStream(socket.getOutputStream());

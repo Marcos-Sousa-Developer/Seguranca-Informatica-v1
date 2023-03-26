@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.ConnectException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.InvalidKeyException;
@@ -44,6 +45,10 @@ public class CommandC {
 		this.files = files;
 	}
 	
+	/*
+	 * Ciphers the file and save it on client
+	 * @String the fileName that wants to cipher
+	 */
 	private void cipherFile(String fileName) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IOException {
 		
 		KeyGenerator kg = KeyGenerator.getInstance("AES");
@@ -117,7 +122,20 @@ public class CommandC {
 	
 	public void sendToServer() throws UnknownHostException, IOException, ClassNotFoundException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, UnrecoverableKeyException, KeyStoreException, CertificateException, IllegalBlockSizeException {
 		
-		Socket socket = new Socket(this.ip, this.port);
+		Socket socket = null;
+		try {
+			 socket = new Socket(this.ip, this.port);
+		}
+		catch (ConnectException e) {
+			System.out.println("Connection refused, please check the Port");
+			System.exit(-1);
+		}
+		catch (UnknownHostException e) {
+			
+			System.out.println("Connection refused, please check the Host");
+			System.exit(-1);
+		}
+		
 		
 		ObjectOutputStream outStream = new ObjectOutputStream(socket.getOutputStream());
 		ObjectInputStream inStream = new ObjectInputStream(socket.getInputStream());

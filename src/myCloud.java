@@ -10,6 +10,11 @@ import commands.VerifyPort;
 
 public class myCloud {
 	
+	/*
+	 * Check if command is right
+	 * @String[] list of arguments to check 
+	 * @return Array of strings with host and port
+	 */
 	private static String[] verifyCommand(String[] args) {
 		
 		String ip = "";
@@ -26,8 +31,9 @@ public class myCloud {
 	    	System.exit(-1);
 		}else {
 			String[] address = args[1].split(":");
-			if(address.length == 2) {
+			if(address.length == 2 && !address[0].equals("")) {
 				ip = address[0];
+				
 				port = new VerifyPort(address[1]).verifyPort();
 				
 				String[] options = new String[]{"-c", "-s", "-e", "-g"};
@@ -46,31 +52,32 @@ public class myCloud {
 		return new String[]{ip, port};
 	}
 
+	/*
+	 * Manage type of request
+	 * @Args arguments
+	 */
 	public static void main(String[] args) throws Exception {
 		
 		
 		String[] address = verifyCommand(args);
 		
+		//Split and get the files to manage
 		List<String> files = new ArrayList<>(Arrays.asList(args)).subList(3, args.length);
 
 		switch (args[2]) {
 			case "-c":
-
 				new CommandC(address[0], Integer.parseInt(address[1]), files).sendToServer();
 
 				break;
 			case "-s":
-
 				new CommandS(address[0], Integer.parseInt(address[1]), files).sendToServer();
 
 				break;
 			case "-e":
-
 				new CommandE(address[0], Integer.parseInt(address[1]), files).sendToServer();
 
 				break;
 			case "-g":
-
 				new CommandG(address[0], Integer.parseInt(address[1]), files).sendToServer();
 
 				break;

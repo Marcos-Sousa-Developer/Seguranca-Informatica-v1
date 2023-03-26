@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.net.ConnectException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.InvalidKeyException;
@@ -166,7 +167,19 @@ public class CommandE {
 	
 	public void sendToServer() throws UnknownHostException, IOException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, SignatureException, UnrecoverableKeyException, KeyStoreException, CertificateException, IllegalBlockSizeException, BadPaddingException, ClassNotFoundException {
 		
-		Socket socket = new Socket(this.ip, this.port);
+		Socket socket = null;
+		try {
+			 socket = new Socket(this.ip, this.port);
+		}
+		catch (ConnectException e) {
+			System.out.println("Connection refused, please check the Port");
+			System.exit(-1);
+		}
+		catch (UnknownHostException e) {
+			
+			System.out.println("Connection refused, please check the Host");
+			System.exit(-1);
+		}
 		
 		ObjectOutputStream outStream = new ObjectOutputStream(socket.getOutputStream());
 		ObjectInputStream inStream = new ObjectInputStream(socket.getInputStream());
