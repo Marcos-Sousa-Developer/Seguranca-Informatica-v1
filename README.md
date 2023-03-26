@@ -12,7 +12,7 @@ A primeira fase do trabalho tem como objetivo fundamental a construção de uma 
 
 <hr>
 
-# Arquitectura do Sistema
+# Arquitetura do Sistema
 
 O trabalho consiste no desenvolvimento de dois programas:
 * O servidor myCloudServer
