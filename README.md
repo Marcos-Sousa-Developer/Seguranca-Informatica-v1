@@ -32,9 +32,10 @@ java myCloudServer 'PortNumber'
 
 ```bash
 java myCloud -a 'HOST':'PortNumber' {-c||-s||-e||-g} {<filenames>}+ 
+```
 
 ##Comandos para o Cliente
-```
+
 **-a 'HOST':'PortNumber'**
 
 Identifica o servidor (hostname ou endereço IP e porto; por exemplo 127.0.0.1:23456). 
@@ -91,17 +92,3 @@ java myCloud -a 127.0.0.1:23456 -g trab1.pdf aulas.doc
 Toda criptografia assimétrica no trabalho é com RSA com chaves de 2048 bits. <br>
 A criptografia simétrica é efetuada com AES e chaves de 128 bits. <br>
 Os utilizadores do myCloud têm de ter um par de chaves na keystore designada por keystore.??Cloud
-
-
-
-
-
-
-
-
-
-
-
-
-
-
