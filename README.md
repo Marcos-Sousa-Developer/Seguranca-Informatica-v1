@@ -28,10 +28,12 @@ A aplicação é distribuída de forma que o servidor fica numa máquina e o uti
 ```bash
 java myCloudServer 'PortNumber'
 ```
-**3ºPasso: Correr o cliente**
+**3ºPasso: Correr o cliente** 
 
 ```bash
 java myCloud -a 'HOST':'PortNumber' {-c||-s||-e||-g} {<filenames>}+ 
+
+##Comandos para o Cliente
 ```
 **-a 'HOST':'PortNumber'**
 
