@@ -94,7 +94,7 @@ public class CommandE {
 	    CipherOutputStream cos = new CipherOutputStream(fos, c);
 
 	    int totalFileLength = fis.available();
-		byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)]; 
+		byte[] dataToBytes = new byte[Math.min(totalFileLength==0 ? 1 : totalFileLength , 1024)]; 
 		
 		Signature signature = initSignature();
 		
@@ -233,7 +233,7 @@ public class CommandE {
 					outStream.writeObject(totalFileLength);
 			
 					//byte array for file
-					byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)]; 
+					byte[] dataToBytes = new byte[Math.min(totalFileLength==0 ? 1 : totalFileLength , 1024)]; 
 					
 					//Length of the contents of the read file 
 					int contentLength = fileInStream.read(dataToBytes); 
