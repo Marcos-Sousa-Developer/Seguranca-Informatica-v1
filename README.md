@@ -34,7 +34,7 @@ java myCloudServer 'PortNumber'
 java myCloud -a 'HOST':'PortNumber' {-c||-s||-e||-g} {<filenames>}+ 
 ```
 
-##Comandos para o Cliente
+# Comandos para o Cliente
 
 **-a 'HOST':'PortNumber'**
 
