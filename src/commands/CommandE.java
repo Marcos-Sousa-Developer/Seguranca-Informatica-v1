@@ -43,17 +43,17 @@ public class CommandE {
 		this.files = files;
 	}
 	
-	private Signature assignFile() throws NoSuchAlgorithmException,KeyStoreException, UnrecoverableKeyException, InvalidKeyException, CertificateException, IOException {
+	/**
+	 * Method to initialize a signature
+	 * @return an instance of Signature
+	 */
+	private Signature initSignature() throws NoSuchAlgorithmException,KeyStoreException, UnrecoverableKeyException, InvalidKeyException, CertificateException, IOException {
 		
 		//Set the signature
 		Signature signature = Signature.getInstance("SHA256withRSA");   
 		
-
 		//Read the KeyStore File
-		FileInputStream keyStorefile = new FileInputStream(new File("../src/KeyStore.si027")); 
-		
-		//Alias from set up in KeyStore file
-		String alias = "si027";
+		FileInputStream keyStorefile = new FileInputStream(new File("../src/KeyStore.si027Cloud")); 
 		
 		//Get the instance of keyStore
 		KeyStore kstore = KeyStore.getInstance("PKCS12"); 
@@ -62,7 +62,7 @@ public class CommandE {
 		kstore.load(keyStorefile, "si027marcos&rafael".toCharArray()); 
 		
 		//Get the private key 
-		Key key = kstore.getKey(alias, "si027marcos&rafael".toCharArray()); 
+		Key key = kstore.getKey("si027", "si027marcos&rafael".toCharArray()); 
 		
 		//turn key in instance of private key
 		PrivateKey privatekey = (PrivateKey) key; 
@@ -74,6 +74,11 @@ public class CommandE {
 		
 	}
 	
+	/**
+	 * While ciphers the file and save it on client, create signature to server
+	 * and sent it to the server
+	 * @String the fileName that wants to cipher
+	 */
 	private void cipherFile(String fileName, ObjectOutputStream outStream) throws NoSuchAlgorithmException, NoSuchPaddingException, IOException, InvalidKeyException, UnrecoverableKeyException, KeyStoreException, CertificateException, SignatureException {
 		
 	    KeyGenerator kg = KeyGenerator.getInstance("AES");
@@ -84,16 +89,18 @@ public class CommandE {
 	    c.init(Cipher.ENCRYPT_MODE, key);
 
 	    FileInputStream fis = new FileInputStream("../files/" + fileName);
-	    FileOutputStream fos = new FileOutputStream(fileName + ".seguro");
+	    FileOutputStream fos = new FileOutputStream("../files/" +fileName + ".seguro");
 	    CipherOutputStream cos = new CipherOutputStream(fos, c);
 
 	    int totalFileLength = fis.available();
 		byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)]; 
 		
-		Signature signature = assignFile();
+		Signature signature = initSignature();
 		
 	    int i = fis.read(dataToBytes);
-	    while (i != -1) {
+	    
+	    //While make signature, cipher the file
+	    while (i > 0) {
 	    	signature.update(dataToBytes,0,i);
 	        cos.write(dataToBytes, 0, i);
 	        i = fis.read(dataToBytes);
@@ -104,56 +111,52 @@ public class CommandE {
 	    outStream.writeObject(signature.sign());
 
 	    byte[] keyEncoded = key.getEncoded();
-	    FileOutputStream kos = new FileOutputStream(fileName + ".key");
+	    FileOutputStream kos = new FileOutputStream("../files/" + fileName + ".key");
 	    kos.write(keyEncoded);
 	    kos.close();
 		
 	}
 	
+	/**
+	 * Cipher the key and save it
+	 * @String fileName with initial name
+	 */
 	private void cipherKey(String fileName) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableKeyException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException {
 		
-    	// ler minha keystote
-    	FileInputStream kfile = new FileInputStream("KeyStore.si027");
+    	FileInputStream kfile = new FileInputStream("KeyStore.si027Cloud");
     	
-    	//criar key store do tipo
     	KeyStore keystore = KeyStore.getInstance("PKCS12");
     	
-    	//qual a password e fazer load
     	keystore.load(kfile, "si027marcos&rafael".toCharArray());
     	
-    	//meu utilizador dentro da keysotre
-    	String alias = "si027"; 
+    	//Key key = keystore.getKey("si027", "si027marcos&rafael".toCharArray());  
     	
-    	//obter key do utilizador com respetiva pass
-    	Key key = keystore.getKey(alias, "si027marcos&rafael".toCharArray());  
+    	Certificate cert = keystore.getCertificate("si027");
     	
-    	Certificate cert = keystore.getCertificate(alias);
-    	
-    	//obter public key, vai ser usada para cifra hibrida
     	PublicKey pubkey = cert.getPublicKey();
     	
-    	// criar cifra do tipo rsaokokokokokok
     	Cipher c = Cipher.getInstance("RSA"); 
     	
-    	//iniciar da cifra no wrap mode com a pub key
-    	c.init(Cipher.WRAP_MODE, pubkey);
+    	c.init(Cipher.WRAP_MODE, pubkey); 
     	
-    	File fKey = new File(fileName + ".key");
+    	//create a new file with the key
+    	File fKey = new File("../files/" + fileName + ".key");
     	
-    	//ler a chave
     	FileInputStream fis = new FileInputStream(fKey);
     	
-    	//ler o conteudo dos bytes
     	byte[] AESkey = new byte[fis.available()]; 
-    	int i = fis.read(AESkey); //NÃO FOI USADO
+    	fis.read(AESkey);
     	fis.close();
+    	
+    	//after save the key on buffer delete
     	fKey.delete();
     	
     	SecretKey keyAES = new SecretKeySpec(AESkey, "AES");
     	
+    	// cipher key
     	byte[] wrappedKey = c.wrap(keyAES);	
     	
-    	FileOutputStream fos = new FileOutputStream(fileName + ".keykey");
+    	FileOutputStream fos = new FileOutputStream("../files/" + fileName + ".keykey");
     	
     	fos.write(wrappedKey); 
     	
@@ -162,6 +165,9 @@ public class CommandE {
     	
 	}
 	
+	/**
+	 * Method to communicate with the server
+	 */
 	public void sendToServer() throws UnknownHostException, IOException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, SignatureException, UnrecoverableKeyException, KeyStoreException, CertificateException, IllegalBlockSizeException, BadPaddingException, ClassNotFoundException {
 		
 		Socket socket = null;
@@ -184,24 +190,36 @@ public class CommandE {
 		outStream.writeObject("-e");  
 		outStream.writeObject(this.files.size());
 		
-		for (String fileName : this.files) {
+		for (String fileName : this.files) { 
+			
+			//check if file exists on client
 			
 			File f = new File("../files/" + fileName);
 			
 			Boolean fileExistClient = f.exists();
 			
-			if(fileExistClient) {//
+			if(fileExistClient) {
+
+				//Send true to server know that file exists
 				outStream.writeObject(fileExistClient);
+				
+				//Send the file name
 				outStream.writeObject(fileName);
 				
 				Boolean fileExistServer = (Boolean) inStream.readObject();
 				
+				// Verify if file exists in the server
+				//File does not exist
 				if(!fileExistServer) {
 					
+					//cipher file
 					cipherFile(fileName,outStream); 
-					cipherKey(fileName);
+					//cipher key
+					cipherKey(fileName); 
+					
+					File secureFile = new File("../files/" + fileName + ".seguro");
 			
-					FileInputStream fileInStream = new FileInputStream(fileName + ".seguro");
+					FileInputStream fileInStream = new FileInputStream("../files/" + fileName + ".seguro");
 			
 					//get total file length
 					int totalFileLength = fileInStream.available();
@@ -216,18 +234,20 @@ public class CommandE {
 					int contentLength = fileInStream.read(dataToBytes); 
 					
 					//read files chunk 
-					while(contentLength != -1 ) {
+					while(contentLength > 0 ) {
 						//send data to server
 						outStream.write(dataToBytes,0,contentLength);
 						//continue to read fileInStream
 						contentLength = fileInStream.read(dataToBytes);
 					}
 					fileInStream.close(); 
+					secureFile.delete();
 					
-					File fileKeyCiph = new File(fileName + ".keykey");
+					File fileKeyCiph = new File("../files/" + fileName + ".keykey");
 					
 					FileInputStream fileInStreamkey = new FileInputStream(fileKeyCiph);  
 					
+					//send the cipher key to the server
 					outStream.writeObject(fileInStreamkey.readAllBytes());
 					
 					fileInStreamkey.close();

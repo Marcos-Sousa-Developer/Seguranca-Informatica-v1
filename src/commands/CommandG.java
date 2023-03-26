@@ -44,46 +44,61 @@ public class CommandG {
 		this.files = files;
 	}
 	
-	private void initVerifySign(byte[] signatureInByte, FileInputStream fileToVerify) throws NoSuchAlgorithmException, CertificateException, IOException, KeyStoreException, InvalidKeyException, UnrecoverableKeyException, ClassNotFoundException, SignatureException {
+	/**
+	 * Verify if file was not tempered.
+	 * @byte[] signatureInByte received signature in bytes
+	 * @String fileToVerify file that you want to verify
+	 */
+	private void initVerifyFile(byte[] signatureInByte, String fileName) throws NoSuchAlgorithmException, CertificateException, IOException, KeyStoreException, InvalidKeyException, UnrecoverableKeyException, ClassNotFoundException, SignatureException {
 		
 		Signature s = Signature.getInstance("SHA256withRSA");
 		
-		FileInputStream kfile = new FileInputStream(new File("../src/KeyStore.si027"));
+		FileInputStream kfile = new FileInputStream(new File("../src/KeyStore.si027Cloud"));
 		KeyStore keystore = KeyStore.getInstance("PKCS12");
 		keystore.load(kfile, "si027marcos&rafael".toCharArray()); 
-		Key key = keystore.getKey("si027", "si027marcos&rafael".toCharArray());  
+		//Key key = keystore.getKey("si027", "si027marcos&rafael".toCharArray());  
 
 		Certificate cert = keystore.getCertificate("si027");
 		
-		//obter public key, vai ser usada para cifra hibrida
 		PublicKey publicKey = cert.getPublicKey(); 	
 		
 		s.initVerify(publicKey);
 		
+		//get the received file to verify
+		FileInputStream fileToVerify = new FileInputStream("../receiveidFiles/"+fileName);
+		
+		//get total file length
 		int totalFileLength =  fileToVerify.available();
 		
 		byte[] bufferData = new byte[Math.min(totalFileLength, 1024)];
 										
 		int contentFileLength = fileToVerify.read(bufferData);
-														
-		while (contentFileLength != -1) {
+		
+		//verify file
+		while (contentFileLength > 0) {
 			s.update(bufferData,0,contentFileLength);
 			contentFileLength = fileToVerify.read(bufferData);
 		}
 		fileToVerify.close(); 
-				
+		
+		//check if file was not tempered
 		boolean bool = s.verify(signatureInByte);
-    	
     	if(bool) {
-            System.out.println("Signature verified");   
+            System.out.println("Signature of file " +  fileName + " was verified");   
          } else {
-            System.out.println("Signature failed");
+            System.out.println("Signature of file " + fileName + " was failed");
          }	
 	}
 
-	private Cipher decryptSecretKey(byte[] AESkey) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableKeyException, InvalidKeyException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
+	/**
+	 * Receive a secret key encoded and make a DECRYPT
+	 * than initialize a cipher DECRYPT mode.
+	 * @byte[] AESkey
+	 * @return Cipher initialized
+	 */
+	private Cipher initDecryptMode(byte[] AESkey) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableKeyException, InvalidKeyException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
 		
-		FileInputStream kfile = new FileInputStream("KeyStore.si027"); 
+		FileInputStream kfile = new FileInputStream("KeyStore.si027Cloud"); 
 	    KeyStore kstore = KeyStore.getInstance("PKCS12");
 	    kstore.load(kfile, "si027marcos&rafael".toCharArray());
 	    
@@ -102,15 +117,24 @@ public class CommandG {
 	    return c;
 	}
 	
-	private void decryptFile(byte[] secretKeyInByte, ObjectInputStream inStream,FileOutputStream fileOutput) throws UnrecoverableKeyException, InvalidKeyException, KeyStoreException, NoSuchAlgorithmException, CertificateException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException, IOException, ClassNotFoundException {
+	/**
+	 * Read a chunk files, DECRYPT file and save it on client machine
+	 * @byte[] secretKeyInByte
+	 * @ObjectInputStream inStream
+	 * @fileName fileName to get the fileOutput
+	 */
+	private void decryptFile(byte[] secretKeyInByte, ObjectInputStream inStream, String fileName) throws UnrecoverableKeyException, InvalidKeyException, KeyStoreException, NoSuchAlgorithmException, CertificateException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException, IOException, ClassNotFoundException {
 		
-		Cipher c = decryptSecretKey(secretKeyInByte);
+		//get cipher in DECRYPT mode
+		Cipher c = initDecryptMode(secretKeyInByte);
+		
+		FileOutputStream fileOutput = new FileOutputStream("../receiveidFiles/" + fileName);
 		
 		CipherOutputStream cipherOut= new CipherOutputStream(fileOutput, c);
 		
 		int totalFileLength = (int) inStream.readObject();
 		
-		byte[] bufferData = new byte[1024];
+		byte[] bufferData = new byte[Math.min(totalFileLength, 1024)];
 										
 		int contentFileLength = inStream.read(bufferData);
 										
@@ -129,13 +153,16 @@ public class CommandG {
 			}
 		}
 		
-		cipherOut.flush();
+		//cipherOut.flush();
 		cipherOut.close();
 		fileOutput.close();
 		
-		System.out.println("Terminou a decifra");
+		System.out.println("File " + fileName + " already decrypted!");
 	}
-		
+	
+	/**
+	 * Method to communicate with the server
+	 */
 	public void sendToServer() throws UnknownHostException, IOException, ClassNotFoundException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, UnrecoverableKeyException, KeyStoreException, CertificateException, IllegalBlockSizeException, SignatureException, BadPaddingException {
 
 		Socket socket = null;
@@ -143,75 +170,85 @@ public class CommandG {
 			 socket = new Socket(this.ip, this.port);
 		}
 		catch (ConnectException e) {
-			System.out.println("Connection refused, please check the Port");
-			System.exit(-1);
-		}
-		catch (UnknownHostException e) {
-			
-			System.out.println("Connection refused, please check the Host");
+			System.out.println("Connection refused, please check the address or port");
 			System.exit(-1);
 		}
 		
 		ObjectOutputStream outStream = new ObjectOutputStream(socket.getOutputStream());
 		ObjectInputStream inStream = new ObjectInputStream(socket.getInputStream());
 		
+		//send type option to get a correct manager
 		outStream.writeObject("-g");
 		outStream.writeObject(this.files.size());
 		
 		for (String fileName : this.files) {
 			
-			System.out.println(fileName);
+			outStream.writeObject(fileName); 
 			
-			outStream.writeObject(fileName);
+			boolean fileExistsOnServer = (boolean) inStream.readObject(); 
 			
-			String option = (String) inStream.readObject();
-			
-			if(option.equals("-c")) {
-				byte[] secretKeyInByte = new byte[256];
-				inStream.read(secretKeyInByte);
-				decryptFile(secretKeyInByte, inStream, new FileOutputStream(fileName));
-			} 
-			
-			else if (option.equals("-s")) {
+			if(fileExistsOnServer) {
 				
-				byte[] signatureInByte = new byte[256];
-				inStream.read(signatureInByte);
+				//after send the requested file, gets correct manager
+				String option = (String) inStream.readObject();
 				
-				FileOutputStream outFile = new FileOutputStream(fileName); 
-								
-				int totalFileLength = (int) inStream.readObject();
+				if(option.equals("-c")) {
+					byte[] secretKeyInByte = new byte[256];
+					inStream.read(secretKeyInByte);
+					decryptFile(secretKeyInByte, inStream, fileName);
+				} 
 				
-				byte[] bufferData = new byte[Math.min(totalFileLength, 1024)];
-												
-				int contentFileLength = inStream.read(bufferData);
-												
-				while (contentFileLength > 0 && totalFileLength > 0) {
-					if (totalFileLength >= contentFileLength) {
-						outFile.write(bufferData, 0, contentFileLength);
-					} else {
-						outFile.write(bufferData, 0, totalFileLength);
-					}
-					totalFileLength -= contentFileLength; 
+				else if (option.equals("-s")) {
 					
-					if(contentFileLength > 0 && totalFileLength > 0) {
-						contentFileLength = inStream.read(bufferData);
+					//get signature
+					byte[] signatureInByte = new byte[256];
+					inStream.read(signatureInByte);
+					
+					FileOutputStream outFile = new FileOutputStream("../receiveidFiles/" + fileName); 
+									
+					int totalFileLength = (int) inStream.readObject();
+					
+					byte[] bufferData = new byte[Math.min(totalFileLength, 1024)];
+													
+					int contentFileLength = inStream.read(bufferData);
+					
+					//get file chunks and store in "../receiveidFiles/"
+					while (contentFileLength > 0 && totalFileLength > 0) {
+						if (totalFileLength >= contentFileLength) {
+							outFile.write(bufferData, 0, contentFileLength);
+						} else {
+							outFile.write(bufferData, 0, totalFileLength);
+						}
+						totalFileLength -= contentFileLength; 
+						
+						if(contentFileLength > 0 && totalFileLength > 0) {
+							contentFileLength = inStream.read(bufferData);
+						}
 					}
+					outFile.close(); 
+					//initialize verify file
+					initVerifyFile(signatureInByte, fileName);
+					
 				}
-				outFile.close(); 
-				initVerifySign(signatureInByte, new FileInputStream(fileName));
 				
+				else {
+					//get secret key
+					byte[] secretKeyInByte = new byte[256];
+					inStream.read(secretKeyInByte);
+					
+					//get signature
+					byte[] signatureInByte = new byte[256];
+					inStream.read(signatureInByte); 
+										
+					decryptFile(secretKeyInByte, inStream, fileName); 
+					initVerifyFile(signatureInByte, fileName);
+
+				}
+				System.out.println();
 			}
 			
 			else {
-				byte[] secretKeyInByte = new byte[256];
-				inStream.read(secretKeyInByte);
-				
-				byte[] signatureInByte = new byte[256];
-				inStream.read(signatureInByte); 
-				
-				decryptFile(secretKeyInByte, inStream, new FileOutputStream(fileName)); 
-				initVerifySign(signatureInByte, new FileInputStream(fileName));
-
+				System.err.println("The file " + fileName + " doesn't exist on the server. You must provide a existing file.");
 			}
 		}
 	}

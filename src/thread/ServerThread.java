@@ -67,25 +67,28 @@ public class ServerThread extends Thread {
 
 			Boolean fileExistClient = (Boolean) inStream.readObject();
 
+			// check if file exists on client
 			if (fileExistClient) {
 				String fileName = (String) inStream.readObject();
 
-				//File f = new File("../cloud/files/" + fileName + ".cifrado");
-				File f = new File(fileName + ".cifrado");
+				File fcifrado = new File("../cloud/files/" + fileName + ".cifrado");
+				File fassinado = new File("../cloud/files/" + fileName + ".assinado");
+				File fseguro = new File("../cloud/files/" + fileName + ".seguro");
 
-				Boolean fileExistServer = f.exists();
+				//check if file does not exists on the server
+				Boolean fileExistServer = fcifrado.exists() || fassinado.exists() || fseguro.exists();
 
+				//send the output
 				outStream.writeObject(fileExistServer);
 
+				//if does not exists
 				if (!fileExistServer) {
 
-					// ---------------Receber Ficheiro Cifrado----------------------
+					// ---------------Receives the cipher file----------------------
 
 					String fileNameCif = (String) inStream.readObject();
-					System.out.println(fileNameCif);
 
-					//FileOutputStream outFileStreamCif = new FileOutputStream("../cloud/files/" + fileNameCif);
-					FileOutputStream outFileStreamCif = new FileOutputStream(fileNameCif);
+					FileOutputStream outFileStreamCif = new FileOutputStream("../cloud/files/" + fileNameCif);
 					BufferedOutputStream outFileCif = new BufferedOutputStream(outFileStreamCif);
 
 					try {
@@ -112,13 +115,11 @@ public class ServerThread extends Thread {
 					}
 					outFileCif.close();
 
-					// ---------------Receber Chave Cifrada----------------------
+					// ---------------Receives the cipher key----------------------
 
 					String fileNameKey = (String) inStream.readObject();
-					System.out.println(fileNameKey);
 
-					//FileOutputStream outFileStreamKey = new FileOutputStream("../cloud/keys/" + fileNameKey);
-					FileOutputStream outFileStreamKey = new FileOutputStream(fileNameKey);
+					FileOutputStream outFileStreamKey = new FileOutputStream("../cloud/keys/" + fileNameKey);
 
 					BufferedOutputStream outFileKey = new BufferedOutputStream(outFileStreamKey);
 
@@ -146,15 +147,21 @@ public class ServerThread extends Thread {
 						e1.printStackTrace();
 					}
 					outFileKey.close();
+					System.out.println("The file " + fileName + " received!");
+					
+				//can't proceed if the file already exists on the server
 				} else {
 					System.out.println("The file " + fileName + " already exist in server.");
 				}
-			} else {
-				System.out.println("The file doesn't exist in client.");
-			}
+			} 
 		}
 	}
-
+	
+	/**
+	 * Verify commandS and check what to do
+	 * @ObjectInputStream inStream
+	 * @ObjectOutputStream outStream
+	 */
 	private void verifyCommandS(ObjectInputStream inStream, ObjectOutputStream outStream)
 			throws IOException, ClassNotFoundException {
 
@@ -169,17 +176,21 @@ public class ServerThread extends Thread {
 				// Read the file name received by client
 				String fileName = (String) inStream.readObject();
 
-				// Check file
-				File file = new File(fileName + ".assinado");
+				// Check file exists on server
+				File fcifrado = new File("../cloud/files/" + fileName + ".cifrado");
+				File fassinado = new File("../cloud/files/" + fileName + ".assinado");
+				File fseguro = new File("../cloud/files/" + fileName + ".seguro");
+				
+				Boolean fileExistServer = fcifrado.exists() || fassinado.exists() || fseguro.exists();
 
 				// Verify if file exists
-				if (!file.exists()) {
+				if (!fileExistServer) {
 
 					// File does not exist
 					outStream.writeObject(false);
 
 					// Create new fileOutput ".assign"
-					FileOutputStream outFile = new FileOutputStream(fileName + ".assinado");
+					FileOutputStream outFile = new FileOutputStream("../cloud/files/" + fileName + ".assinado");
 
 					// get the total buffer size for each file Math.min(totalbytesOfFile,1024)
 					int totalFileLength = (int) inStream.readObject();
@@ -202,21 +213,28 @@ public class ServerThread extends Thread {
 					outFile.close();
 
 					// Get Signature
-					FileOutputStream outSignature = new FileOutputStream(fileName + ".assinatura");
+					FileOutputStream outSignature = new FileOutputStream("../cloud/signatures/" + fileName + ".assinatura");
 
 					// Get out put of signature
 					outSignature.write((byte[]) inStream.readObject());
 					outSignature.close();
+					System.out.println("The file " + fileName + " received!");
 
 				}
-				// File exist
+				// File exist on server
 				else {
 					outStream.writeObject(true);
+					System.out.println("The file " + fileName + " already exist in server.");
 				}
 			}
 		}
 	}
-	
+
+	/**
+	 * Verify commandE and check what to do
+	 * @ObjectInputStream inStream
+	 * @ObjectOutputStream outStream
+	 */
 	private void verifyCommandE(ObjectInputStream inStream, ObjectOutputStream outStream) throws ClassNotFoundException, IOException {
 		
 		int numFiles = (int) inStream.readObject(); 
@@ -227,23 +245,28 @@ public class ServerThread extends Thread {
 		
 			if (fileExistClient) {
 				String fileName = (String) inStream.readObject();
-
-				File f = new File(fileName + ".seguro");
 				
-				Boolean fileExistServer = f.exists();
+				// Check file exists on server
+				File fcifrado = new File("../cloud/files/" + fileName + ".cifrado");
+				File fassinado = new File("../cloud/files/" + fileName + ".assinado");
+				File fseguro = new File("../cloud/files/" + fileName + ".seguro");
+				
+				Boolean fileExistServer = fcifrado.exists() || fassinado.exists() || fseguro.exists();
 
 				outStream.writeObject(fileExistServer);
 
 				if (!fileExistServer) {
 		
-					FileOutputStream out = new FileOutputStream(fileName + ".seguro");
+					FileOutputStream out = new FileOutputStream("../cloud/files/" + fileName + ".seguro");
 					
-					FileOutputStream outSignature = new FileOutputStream(fileName + ".assinatura"); 
+					//save the signature of the file
+					FileOutputStream outSignature = new FileOutputStream("../cloud/signatures/" + fileName + ".assinatura"); 
 					
 					outSignature.write((byte[]) inStream.readObject()); 
 					
 					outSignature.close();
 					
+					//get total cipher text
 					int totalFileLength = (int) inStream.readObject();
 			
 					//byte array for file
@@ -261,81 +284,115 @@ public class ServerThread extends Thread {
 						else {
 							out.write(dataToBytes,0,totalFileLength);
 						}
-						
-						//continue to read fileInStream
+	
 						totalFileLength -= contentLength;
-						contentLength = inStream.read(dataToBytes);
+						
+						if(contentLength > 0  &&  totalFileLength > 0) {
+							//continue to read fileInStream
+							contentLength = inStream.read(dataToBytes);
+						}
+							
 					}
 					
 					out.close(); 
 					
-					FileOutputStream outKey = new FileOutputStream(fileName + ".chave_secreta"); 
+					//Save the cipher secret key
+					FileOutputStream outKey = new FileOutputStream("../cloud/keys/" + fileName + ".chave_secreta"); 
 					
 					outKey.write((byte[]) inStream.readObject()); 
 					
 					outKey.close();
-					
-					
+					System.out.println("The file " + fileName + " received!");
 					
 				} else {
 					System.out.println("The file " + fileName + " already exist in server.");
 				}
-			} else {
-				System.out.println("The file doesn't exist in client.");
 			}
 		}
 	}
 	
+	/**
+	 * Verify commandG and check what to do
+	 * @ObjectInputStream inStream
+	 * @ObjectOutputStream outStream
+	 */
 	private void verifyCommandG(ObjectInputStream inStream, ObjectOutputStream outStream) throws IOException, ClassNotFoundException {
-		
+
 		int numbersOfFiles = (int) inStream.readObject();
 				
 		for (int i = 0; i < numbersOfFiles; i++) {
 			
 			String fileName = (String) inStream.readObject(); 
 			
-			System.out.println(i);
+			// Check file exists on server
+			File fcifrado = new File("../cloud/files/" + fileName + ".cifrado");
+			File fassinado = new File("../cloud/files/" + fileName + ".assinado");
+			File fseguro = new File("../cloud/files/" + fileName + ".seguro");
 			
-			File fileToReadSign = new File(fileName + ".assinado");
-			if(fileToReadSign.exists()){				
-				sendToClient(outStream, "-s", fileToReadSign, fileName);
-			}
+			Boolean fileExistServer = fcifrado.exists() || fassinado.exists() || fseguro.exists();
+
+			outStream.writeObject(fileExistServer);
 			
-			File fileToReadCif = new File(fileName + ".cifrado");
-			if(fileToReadCif.exists()){
-				sendToClient(outStream, "-c", fileToReadCif, fileName);
-			}
-			
-			File fileToReadSecure = new File(fileName + ".seguro");
-			if(fileToReadSecure.exists()){ 
-				sendToClient(outStream, "-e", fileToReadSecure, fileName);
+			if(fileExistServer) { 
 				
+				//case file is type ASSINADO
+				File fileToReadSign = new File("../cloud/files/" + fileName + ".assinado");
+				if(fileToReadSign.exists()){				
+					sendToClient(outStream, "-s", fileToReadSign, fileName);
+				}
+				else {
+					//case file is type CIFRADO
+					File fileToReadCif = new File("../cloud/files/" + fileName + ".cifrado");
+					if(fileToReadCif.exists()){
+						sendToClient(outStream, "-c", fileToReadCif, fileName);
+					}
+					//case file is type SEGURO
+					else {
+						File fileToReadSecure = new File("../cloud/files/" + fileName + ".seguro");
+						if(fileToReadSecure.exists()){ 
+							sendToClient(outStream, "-e", fileToReadSecure, fileName);
+							
+						}
+					}
+				}
+				System.out.println("The file " + fileName + " already sent!");				
+			}
+			else {
+				System.out.println("The file " + fileName + " is not recognized!");
 			}
 		}				
 	}
 	
+	
+	/**
+	 * Send files to client
+	 * @ObjectOutputStream outStream
+	 * @String option client manager option
+	 * @File fileToRead 
+	 * @String fileName
+	 */
 	private void sendToClient(ObjectOutputStream outStream, String option, File fileToRead, String fileName) throws IOException {
 		
 		outStream.writeObject(option); 
 						
 		if(option.equals("-c")) {
-			FileInputStream fileInStreamSecretKey = new FileInputStream(fileName + ".chave_secreta"); 
+			FileInputStream fileInStreamSecretKey = new FileInputStream("../cloud/keys/" + fileName + ".chave_secreta"); 
 			outStream.write(fileInStreamSecretKey.readAllBytes());
 			fileInStreamSecretKey.close();
 		} 
 		
 		else if (option.equals("-s")) {
-			FileInputStream fileInStreamSignature = new FileInputStream(fileName + ".assinatura"); 
+			FileInputStream fileInStreamSignature = new FileInputStream("../cloud/signatures/" + fileName + ".assinatura"); 
 			outStream.write(fileInStreamSignature.readAllBytes()); 
 			fileInStreamSignature.close();
 		}
 		
 		else {
-			FileInputStream fileInStreamSecretKey = new FileInputStream(fileName + ".chave_secreta"); 
+			FileInputStream fileInStreamSecretKey = new FileInputStream("../cloud/keys/" + fileName + ".chave_secreta"); 
 			outStream.write(fileInStreamSecretKey.readAllBytes());
 			fileInStreamSecretKey.close();
 			
-			FileInputStream fileInStreamSignature = new FileInputStream(fileName + ".assinatura"); 
+			FileInputStream fileInStreamSignature = new FileInputStream("../cloud/signatures/" + fileName + ".assinatura"); 
 			outStream.write(fileInStreamSignature.readAllBytes()); 
 			fileInStreamSignature.close();
 		}
@@ -346,11 +403,11 @@ public class ServerThread extends Thread {
 		
 		outStream.writeObject(totalFileLength);
 
-		byte[] dataToBytes = new byte[1024];
+		byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)];
 		
 		int contentLength = fileInStream.read(dataToBytes);  
 								
-		while(contentLength != -1) {
+		while(contentLength > 0) {
 			outStream.write(dataToBytes,0,contentLength); 
 			outStream.flush();						
 			contentLength = fileInStream.read(dataToBytes);

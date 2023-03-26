@@ -51,6 +51,7 @@ public class CommandC {
 	 */
 	private void cipherFile(String fileName) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IOException {
 		
+		//random key
 		KeyGenerator kg = KeyGenerator.getInstance("AES");
 	    kg.init(128);
 	    SecretKey key = kg.generateKey();
@@ -58,7 +59,9 @@ public class CommandC {
 	    Cipher c = Cipher.getInstance("AES");
 	    c.init(Cipher.ENCRYPT_MODE, key);
 
+	    //get file in files
 	    FileInputStream fis = new FileInputStream("../files/" + fileName);
+	    // create file.cif in files
 	    FileOutputStream fos = new FileOutputStream("../files/" + fileName + ".cifrado");
 	    CipherOutputStream cos = new CipherOutputStream(fos, c);
 	    
@@ -74,21 +77,26 @@ public class CommandC {
 	    fis.close();
 
 	    byte[] keyEncoded = key.getEncoded();
+	    //save file.key in files
 	    FileOutputStream kos = new FileOutputStream("../files/" + fileName + ".key");
 	    
 	    kos.write(keyEncoded);
 	    kos.close();
 	}
 	
-
+	/**
+	 * Cipher the key and save it
+	 * @String fileName
+	 */
 	private void cipherKey(String fileName) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableKeyException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException {
-		FileInputStream kfile = new FileInputStream("keystore.si027"); 
+		
+		//get the 	KeyStore
+		FileInputStream kfile = new FileInputStream("KeyStore.si027Cloud"); 
 	    KeyStore kstore = KeyStore.getInstance("PKCS12");
 	    kstore.load(kfile, "si027marcos&rafael".toCharArray());
 	    
-	    String alias = "si027";
-	    
-	    Key key = kstore.getKey(alias, "si027marcos&rafael".toCharArray());
+	    //get key from KeyStore
+	    Key key = kstore.getKey("si027", "si027marcos&rafael".toCharArray());
 	    
 	    if(key instanceof PrivateKey) {
 	    	
@@ -100,6 +108,7 @@ public class CommandC {
 		    
 		    cRSA.init(Cipher.WRAP_MODE, publicKey);
 		    
+		    // get the file.key previous created
 		    FileInputStream kis = new FileInputStream("../files/" + fileName + ".key");
 		    
 		    byte[] keyEncoded = new byte [kis.available()];
@@ -116,7 +125,11 @@ public class CommandC {
 		    kos.write(chaveAEScifrada);
 		    
 		    kos.close();
-		    }
+		    
+		    //delete the key after generate the secret key
+	        File fKey = new File("../files/" + fileName + ".key");
+	        fKey.delete();
+	    }
 	}
 	
 	/**
@@ -138,7 +151,6 @@ public class CommandC {
 			System.exit(-1);
 		}
 		
-		
 		ObjectOutputStream outStream = new ObjectOutputStream(socket.getOutputStream());
 		ObjectInputStream inStream = new ObjectInputStream(socket.getInputStream());
 		
@@ -147,25 +159,33 @@ public class CommandC {
 		
 		for (String fileName : this.files) {
 			
+			// get the file that you want to send
 			File f = new File("../files/" + fileName);
 			
+			// check if file exists
 			Boolean fileExistClient = f.exists();
 			
 			//if file exists on client can proceed 
 			if(fileExistClient) {
 				
-				outStream.writeObject(fileExistClient);
+				//say to server that file exists
+				outStream.writeObject(fileExistClient); 
+				
+				//send the file name
 				outStream.writeObject(fileName);
 				
+				//check if file exists on the server
 				Boolean fileExistServer = (Boolean) inStream.readObject();
 				
+				// if file does not exists on the client send it
 				if(!fileExistServer) {
 					
+					// cipher the file
 					cipherFile(fileName);
+					//cipher the key
 					cipherKey(fileName);
 					
-					//---------------Enviar Ficheiro Cifrado----------------------
-					
+					//get the file previous create
 					File fileCif = new File("../files/" + fileName + ".cifrado");
 			        Long dimFileCif = fileCif.length();
 			        
@@ -179,14 +199,15 @@ public class CommandC {
 					byte[] dataToBytesCif = new byte[Math.min(dimFileCifInt, 1024)]; 
 				    
 					int contentLengthCif = myFileCif.read(dataToBytesCif);
-				    while (contentLengthCif != -1) {
+				    while (contentLengthCif > 0) {
 				    	outStream.write(dataToBytesCif, 0, contentLengthCif);
 				    	contentLengthCif = myFileCif.read(dataToBytesCif);
 				    }
 			        myFileCif.close();
+			        //after send it can delete the file .cipher
+			        fileCif.delete();
 			        
-			      //---------------Enviar Chave Cifrada----------------------
-			        
+			        //get the file.key
 			        File keyCif = new File("../files/" + fileName + ".chave_secreta");
 			        Long dimKeyCif = keyCif.length();
 			        
@@ -200,23 +221,16 @@ public class CommandC {
 					byte[] dataToBytesKey = new byte[Math.min(dimKeyCifInt, 1024)]; 
 				    
 					int contentLengthKey = myKeyCif.read(dataToBytesKey);
-				    while (contentLengthKey != -1) {
+				    while (contentLengthKey > 0) {
 				    	outStream.write(dataToBytesKey, 0, contentLengthKey);
 				    	contentLengthKey = myKeyCif.read(dataToBytesKey);
 				    }
 			        myKeyCif.close();
-			        
+			        //after send it can delete
+			        keyCif.delete();
+			       
 			        System.out.println("The file " + fileName + " have been sent correctly.");
 					
-			       //----------------Apagar ficheiros no cliente--------------
-			        
-			        File fCif = new File("../files/" + fileName + ".cifrado");
-			        File fKey = new File("../files/" + fileName + ".key");
-			        File fKeyCif = new File("../files/" + fileName + ".chave_secreta");
-			        
-			        fCif.delete();
-			        fKey.delete();
-			        fKeyCif.delete();
 			        
 				} else {
 					System.err.println("The file " + fileName + " already exist in server.");

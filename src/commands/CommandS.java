@@ -32,22 +32,23 @@ public class CommandS {
 	
 	
 	public CommandS(String ip, int port, List<String> files) { 
-		
 		this.ip = ip;
 		this.port = port;
 		this.files = files;
-		
 	}
 	
-
-	private Signature assignFile() throws NoSuchAlgorithmException,KeyStoreException, UnrecoverableKeyException, InvalidKeyException, CertificateException, IOException {
+	/**
+	 * Method to initialize a signature
+	 * @return an instance of Signature
+	 */
+	private Signature initSignature() throws NoSuchAlgorithmException,KeyStoreException, UnrecoverableKeyException, InvalidKeyException, CertificateException, IOException {
 		
 		//Set the signature
 		Signature signature = Signature.getInstance("SHA256withRSA");   
 		
 
 		//Read the KeyStore File
-		FileInputStream keyStorefile = new FileInputStream(new File("../src/KeyStore.si027")); 
+		FileInputStream keyStorefile = new FileInputStream(new File("../src/KeyStore.si027Cloud")); 
 		
 		//Alias from set up in KeyStore file
 		String alias = "si027";
@@ -71,6 +72,9 @@ public class CommandS {
 		
 	}
 	
+	/**
+	 * Method to communicate with the server
+	 */
 	public void sendToServer() throws UnknownHostException, IOException, NoSuchAlgorithmException, SignatureException, ClassNotFoundException, UnrecoverableKeyException, InvalidKeyException, KeyStoreException, CertificateException {
 		
 		Socket socket = null;
@@ -116,10 +120,10 @@ public class CommandS {
 				if(!(Boolean) inStream.readObject()) {
 					
 					//Read the received file 
-					FileInputStream fileInStream = new FileInputStream(fileToRead); 
+					FileInputStream fileInStream = new FileInputStream("../files/" + fileName); 
 					
 					//get signature object 
-					Signature signature = assignFile(); 
+					Signature signature = initSignature(); 
 					
 					//get total file length
 					int totalFileLength = fileInStream.available();
@@ -134,7 +138,7 @@ public class CommandS {
 					int contentLength = fileInStream.read(dataToBytes); 
 					
 					//read files chunk 
-					while(contentLength != -1 ) {
+					while(contentLength > 0 ) {
 						//Hash the data
 						signature.update(dataToBytes,0,contentLength);
 						//send data to server
@@ -147,15 +151,19 @@ public class CommandS {
 					outStream.writeObject(signature.sign());
 					fileInStream.close();
 					
+			        System.out.println("The file " + fileName + " have been sent correctly.");
+					
 				}
-				//File exist
+				//File exist on the server
 				else {
 					System.out.println("File " + fileName + " is already on the server!");
 				}
 			}
+			//File does not exists on the client
 			else {
 				outStream.writeObject(false);
-				System.out.println("File " + fileName + " does not exist!");
+				System.err.println("The file " + fileName + " doesn't exist. You must provide a existing file.");
+
 			}
 		}
 	}
