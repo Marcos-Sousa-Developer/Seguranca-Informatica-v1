@@ -16,50 +16,54 @@ public class ServerThread extends Thread {
 
 	// Thread server for each client
 	public ServerThread(Socket inSoc) {
-		socket = inSoc;
+		this.socket = inSoc;
 	}
-
+	
+	/*
+	 * Overrides Thread run 
+	 * This method listen the option and redirect to the correct manager
+	 */
 	public void run() {
 		try {
+			
 			ObjectInputStream inStream = new ObjectInputStream(this.socket.getInputStream());
 			ObjectOutputStream outStream = new ObjectOutputStream(this.socket.getOutputStream());
+			
 			String option = (String) inStream.readObject();
 
 			if (option.equals("-c")) {
-
 				verifyCommandC(inStream, outStream);
-
+				
 			} else if (option.equals("-s")) {
-
 				verifyCommandS(inStream, outStream);
 
 			} else if (option.equals("-e")) {
-
 				verifyCommandE(inStream, outStream);
 
 			} else if (option.equals("-g")) {
-				
 				verifyCommandG(inStream, outStream);
-
 			}
 
 			inStream.close();
 			this.socket.close();
 
 		} catch (IOException | ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.out.println("I got an error or something was interrupted!");
+			System.out.println(e);
+			//e.printStackTrace();
 		}
 	}
 
+	/**
+	 * Verify commandC and check what to do
+	 * @ObjectInputStream inStream
+	 * @ObjectOutputStream outStream
+	 */
 	private void verifyCommandC(ObjectInputStream inStream, ObjectOutputStream outStream)
 			throws ClassNotFoundException, IOException {
 		int filesDim = (int) inStream.readObject();
-		System.out.println("filesDim: " + filesDim);
 
 		for (int i = 0; i < filesDim; i++) {
-
-			System.out.println("-----------New File-----------");
 
 			Boolean fileExistClient = (Boolean) inStream.readObject();
 

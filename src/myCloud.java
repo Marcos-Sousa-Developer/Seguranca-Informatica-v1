@@ -10,7 +10,7 @@ import commands.VerifyPort;
 
 public class myCloud {
 	
-	/*
+	/**
 	 * Check if command is right
 	 * @String[] list of arguments to check 
 	 * @return Array of strings with host and port
@@ -52,9 +52,9 @@ public class myCloud {
 		return new String[]{ip, port};
 	}
 
-	/*
+	/**
 	 * Manage type of request
-	 * @Args arguments
+	 * @String[] list of arguments
 	 */
 	public static void main(String[] args) throws Exception {
 		

@@ -8,6 +8,10 @@ public class VerifyPort {
 		this.port = port;
 	}
 	
+	/**
+	 * Check if port is correct
+	 * @return the port already verified.
+	 */
 	public String verifyPort() {
 		
 		try {

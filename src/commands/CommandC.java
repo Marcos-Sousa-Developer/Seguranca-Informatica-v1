@@ -45,7 +45,7 @@ public class CommandC {
 		this.files = files;
 	}
 	
-	/*
+	/**
 	 * Ciphers the file and save it on client
 	 * @String the fileName that wants to cipher
 	 */
@@ -119,7 +119,9 @@ public class CommandC {
 		    }
 	}
 	
-	
+	/**
+	 * Method to communicate with the server
+	 */
 	public void sendToServer() throws UnknownHostException, IOException, ClassNotFoundException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, UnrecoverableKeyException, KeyStoreException, CertificateException, IllegalBlockSizeException {
 		
 		Socket socket = null;
@@ -139,6 +141,7 @@ public class CommandC {
 		
 		ObjectOutputStream outStream = new ObjectOutputStream(socket.getOutputStream());
 		ObjectInputStream inStream = new ObjectInputStream(socket.getInputStream());
+		
 		outStream.writeObject("-c");
 		outStream.writeObject(this.files.size());
 		
@@ -148,7 +151,9 @@ public class CommandC {
 			
 			Boolean fileExistClient = f.exists();
 			
+			//if file exists on client can proceed 
 			if(fileExistClient) {
+				
 				outStream.writeObject(fileExistClient);
 				outStream.writeObject(fileName);
 				
@@ -216,6 +221,8 @@ public class CommandC {
 				} else {
 					System.err.println("The file " + fileName + " already exist in server.");
 				}
+				
+			//file does not exists on client so can't proceed 
 			} else {
 				outStream.writeObject(fileExistClient);
 				System.err.println("The file " + fileName + " doesn't exist. You must provide a existing file.");
