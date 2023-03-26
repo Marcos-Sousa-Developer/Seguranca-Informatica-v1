@@ -49,7 +49,7 @@ Exemplo:
 java myCloud -a 127.0.0.1:23456 -c trab1.pdf aulas.doc
 ```
 
-** -s {<filenames>}+ ** 
+* **-s filenames+** 
 
 O cliente assina um ou mais ficheiros e envia-os para o servidor. <br>
 Caso algum dos ficheiros já exista no servidor ou caso algum dos ficheiros não exista localmente, apresenta uma mensagem de erro ao
