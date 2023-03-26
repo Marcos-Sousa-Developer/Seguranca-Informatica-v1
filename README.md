@@ -41,7 +41,7 @@ java myCloud -a 'HOST':'PortNumber' {-c||-s||-e||-g} {<filenames>}+
 
 Identifica o servidor (hostname ou endereço IP e porto; por exemplo 127.0.0.1:23456). 
 
-**-c filames+**
+**-c filenames+**
 
 O cliente cifra um ou mais ficheiros e envia-os para o servidor. <br>
 Caso algum dos ficheiros já exista no servidor ou caso algum dos ficheiros não exista localmente, apresenta uma mensagem de erro aoutilizador e continua para os seguintes ficheiros. <br>
