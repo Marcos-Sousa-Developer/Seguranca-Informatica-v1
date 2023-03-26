@@ -19,13 +19,13 @@ public class myCloudServer {
 		return Integer.parseInt(port);
 	}
 	
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) throws IOException  {
 		int port = verifyPort(args);
 		myCloudServer server = new myCloudServer();
 		server.startServer(port);
 	}
 	
-	private void startServer(int port) throws Exception {
+	private void startServer(int port) throws IOException {
 		ServerSocket sSoc = null;
 		sSoc = new ServerSocket(port);
 		System.out.println("Server connected");

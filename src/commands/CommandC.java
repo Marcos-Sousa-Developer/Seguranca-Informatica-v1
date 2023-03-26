@@ -11,6 +11,7 @@ import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ConnectException;
+import java.net.NoRouteToHostException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.InvalidKeyException;
@@ -69,7 +70,7 @@ public class CommandC {
 		byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)]; 
 	    
 		int contentLength = fis.read(dataToBytes);
-	    while (contentLength != -1) {
+	    while (contentLength > 0) {
 	        cos.write(dataToBytes, 0, contentLength);
 	        contentLength = fis.read(dataToBytes);
 	    }
@@ -147,6 +148,10 @@ public class CommandC {
 		}
 		catch (UnknownHostException e) {
 			
+			System.out.println("Connection refused, please check the Host");
+			System.exit(-1);
+		} 
+		catch (NoRouteToHostException e) {
 			System.out.println("Connection refused, please check the Host");
 			System.exit(-1);
 		}

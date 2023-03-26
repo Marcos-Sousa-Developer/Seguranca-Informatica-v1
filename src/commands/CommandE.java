@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ConnectException;
+import java.net.NoRouteToHostException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.InvalidKeyException;
@@ -180,6 +181,10 @@ public class CommandE {
 		}
 		catch (UnknownHostException e) {
 			
+			System.out.println("Connection refused, please check the Host");
+			System.exit(-1);
+		}
+		catch (NoRouteToHostException e) {
 			System.out.println("Connection refused, please check the Host");
 			System.exit(-1);
 		}

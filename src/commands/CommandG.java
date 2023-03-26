@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ConnectException;
+import java.net.NoRouteToHostException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.InvalidKeyException;
@@ -84,9 +85,9 @@ public class CommandG {
 		//check if file was not tempered
 		boolean bool = s.verify(signatureInByte);
     	if(bool) {
-            System.out.println("Signature of file " +  fileName + " was verified");   
+            System.out.println("Signature of file " +  fileName + " was verified.");   
          } else {
-            System.out.println("Signature of file " + fileName + " was failed");
+            System.out.println("Signature of file " + fileName + " was failed.");
          }	
 	}
 
@@ -173,6 +174,15 @@ public class CommandG {
 			System.out.println("Connection refused, please check the address or port");
 			System.exit(-1);
 		}
+		catch (UnknownHostException e) {
+			
+			System.out.println("Connection refused, please check the Host");
+			System.exit(-1);
+		}
+		catch (NoRouteToHostException e) {
+			System.out.println("Connection refused, please check the Host");
+			System.exit(-1);
+		}
 		
 		ObjectOutputStream outStream = new ObjectOutputStream(socket.getOutputStream());
 		ObjectInputStream inStream = new ObjectInputStream(socket.getInputStream());
@@ -252,7 +262,6 @@ public class CommandG {
 						initVerifyFile(signatureInByte, fileName);
 
 					}
-					System.out.println();
 				}
 				
 				else {
