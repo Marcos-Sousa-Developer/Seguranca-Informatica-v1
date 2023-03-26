@@ -183,72 +183,86 @@ public class CommandG {
 		
 		for (String fileName : this.files) {
 			
-			outStream.writeObject(fileName); 
+			File fileToVerify = new File("../receiveidFiles/" + fileName); 
 			
-			boolean fileExistsOnServer = (boolean) inStream.readObject(); 
+			boolean alreadyReceived = fileToVerify.exists();
 			
-			if(fileExistsOnServer) {
+			outStream.writeObject(alreadyReceived); 
+			
+			if(!alreadyReceived) {
 				
-				//after send the requested file, gets correct manager
-				String option = (String) inStream.readObject();
+				outStream.writeObject(fileName); 
 				
-				if(option.equals("-c")) {
-					byte[] secretKeyInByte = new byte[256];
-					inStream.read(secretKeyInByte);
-					decryptFile(secretKeyInByte, inStream, fileName);
-				} 
+				boolean fileExistsOnServer = (boolean) inStream.readObject(); 
 				
-				else if (option.equals("-s")) {
+				if(fileExistsOnServer) {
 					
-					//get signature
-					byte[] signatureInByte = new byte[256];
-					inStream.read(signatureInByte);
+					//after send the requested file, gets correct manager
+					String option = (String) inStream.readObject();
 					
-					FileOutputStream outFile = new FileOutputStream("../receiveidFiles/" + fileName); 
-									
-					int totalFileLength = (int) inStream.readObject();
+					if(option.equals("-c")) {
+						byte[] secretKeyInByte = new byte[256];
+						inStream.read(secretKeyInByte);
+						decryptFile(secretKeyInByte, inStream, fileName);
+					} 
 					
-					byte[] bufferData = new byte[Math.min(totalFileLength, 1024)];
-													
-					int contentFileLength = inStream.read(bufferData);
-					
-					//get file chunks and store in "../receiveidFiles/"
-					while (contentFileLength > 0 && totalFileLength > 0) {
-						if (totalFileLength >= contentFileLength) {
-							outFile.write(bufferData, 0, contentFileLength);
-						} else {
-							outFile.write(bufferData, 0, totalFileLength);
-						}
-						totalFileLength -= contentFileLength; 
+					else if (option.equals("-s")) {
 						
-						if(contentFileLength > 0 && totalFileLength > 0) {
-							contentFileLength = inStream.read(bufferData);
+						//get signature
+						byte[] signatureInByte = new byte[256];
+						inStream.read(signatureInByte);
+						
+						FileOutputStream outFile = new FileOutputStream("../receiveidFiles/" + fileName); 
+										
+						int totalFileLength = (int) inStream.readObject();
+						
+						byte[] bufferData = new byte[Math.min(totalFileLength, 1024)];
+														
+						int contentFileLength = inStream.read(bufferData);
+						
+						//get file chunks and store in "../receiveidFiles/"
+						while (contentFileLength > 0 && totalFileLength > 0) {
+							if (totalFileLength >= contentFileLength) {
+								outFile.write(bufferData, 0, contentFileLength);
+							} else {
+								outFile.write(bufferData, 0, totalFileLength);
+							}
+							totalFileLength -= contentFileLength; 
+							
+							if(contentFileLength > 0 && totalFileLength > 0) {
+								contentFileLength = inStream.read(bufferData);
+							}
 						}
+						outFile.close(); 
+						//initialize verify file
+						initVerifyFile(signatureInByte, fileName);
+						
 					}
-					outFile.close(); 
-					//initialize verify file
-					initVerifyFile(signatureInByte, fileName);
 					
+					else {
+						//get secret key
+						byte[] secretKeyInByte = new byte[256];
+						inStream.read(secretKeyInByte);
+						
+						//get signature
+						byte[] signatureInByte = new byte[256];
+						inStream.read(signatureInByte); 
+											
+						decryptFile(secretKeyInByte, inStream, fileName); 
+						initVerifyFile(signatureInByte, fileName);
+
+					}
+					System.out.println();
 				}
 				
 				else {
-					//get secret key
-					byte[] secretKeyInByte = new byte[256];
-					inStream.read(secretKeyInByte);
-					
-					//get signature
-					byte[] signatureInByte = new byte[256];
-					inStream.read(signatureInByte); 
-										
-					decryptFile(secretKeyInByte, inStream, fileName); 
-					initVerifyFile(signatureInByte, fileName);
-
+					System.err.println("The file " + fileName + " doesn't exist on the server. You must provide a existing file.");
 				}
-				System.out.println();
 			}
 			
 			else {
-				System.err.println("The file " + fileName + " doesn't exist on the server. You must provide a existing file.");
+				System.err.println("Your already have the file " + fileName + ".");
+
 			}
 		}
 	}

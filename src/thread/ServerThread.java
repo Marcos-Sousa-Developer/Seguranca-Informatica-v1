@@ -322,43 +322,48 @@ public class ServerThread extends Thread {
 				
 		for (int i = 0; i < numbersOfFiles; i++) {
 			
-			String fileName = (String) inStream.readObject(); 
+			boolean alreadySent = (boolean) inStream.readObject(); 
 			
-			// Check file exists on server
-			File fcifrado = new File("../cloud/files/" + fileName + ".cifrado");
-			File fassinado = new File("../cloud/files/" + fileName + ".assinado");
-			File fseguro = new File("../cloud/files/" + fileName + ".seguro");
-			
-			Boolean fileExistServer = fcifrado.exists() || fassinado.exists() || fseguro.exists();
-
-			outStream.writeObject(fileExistServer);
-			
-			if(fileExistServer) { 
+			if(!alreadySent) {
 				
-				//case file is type ASSINADO
-				File fileToReadSign = new File("../cloud/files/" + fileName + ".assinado");
-				if(fileToReadSign.exists()){				
-					sendToClient(outStream, "-s", fileToReadSign, fileName);
-				}
-				else {
-					//case file is type CIFRADO
-					File fileToReadCif = new File("../cloud/files/" + fileName + ".cifrado");
-					if(fileToReadCif.exists()){
-						sendToClient(outStream, "-c", fileToReadCif, fileName);
+				String fileName = (String) inStream.readObject(); 
+				
+				// Check file exists on server
+				File fcifrado = new File("../cloud/files/" + fileName + ".cifrado");
+				File fassinado = new File("../cloud/files/" + fileName + ".assinado");
+				File fseguro = new File("../cloud/files/" + fileName + ".seguro");
+				
+				Boolean fileExistServer = fcifrado.exists() || fassinado.exists() || fseguro.exists();
+
+				outStream.writeObject(fileExistServer);
+				
+				if(fileExistServer) { 
+					
+					//case file is type ASSINADO
+					File fileToReadSign = new File("../cloud/files/" + fileName + ".assinado");
+					if(fileToReadSign.exists()){				
+						sendToClient(outStream, "-s", fileToReadSign, fileName);
 					}
-					//case file is type SEGURO
 					else {
-						File fileToReadSecure = new File("../cloud/files/" + fileName + ".seguro");
-						if(fileToReadSecure.exists()){ 
-							sendToClient(outStream, "-e", fileToReadSecure, fileName);
-							
+						//case file is type CIFRADO
+						File fileToReadCif = new File("../cloud/files/" + fileName + ".cifrado");
+						if(fileToReadCif.exists()){
+							sendToClient(outStream, "-c", fileToReadCif, fileName);
+						}
+						//case file is type SEGURO
+						else {
+							File fileToReadSecure = new File("../cloud/files/" + fileName + ".seguro");
+							if(fileToReadSecure.exists()){ 
+								sendToClient(outStream, "-e", fileToReadSecure, fileName);
+								
+							}
 						}
 					}
+					System.out.println("The file " + fileName + " already sent!");				
 				}
-				System.out.println("The file " + fileName + " already sent!");				
-			}
-			else {
-				System.out.println("The file " + fileName + " is not recognized!");
+				else {
+					System.out.println("The file " + fileName + " is not recognized!");
+				}
 			}
 		}				
 	}
