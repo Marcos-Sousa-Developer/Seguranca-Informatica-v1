@@ -45,7 +45,38 @@ public class CommandE {
 		this.files = files;
 	}
 	
-	private void cipherFile(String fileName) throws NoSuchAlgorithmException, NoSuchPaddingException, IOException, InvalidKeyException {
+	private Signature assignFile() throws NoSuchAlgorithmException,KeyStoreException, UnrecoverableKeyException, InvalidKeyException, CertificateException, IOException {
+		
+		//Set the signature
+		Signature signature = Signature.getInstance("SHA256withRSA");   
+		
+
+		//Read the KeyStore File
+		FileInputStream keyStorefile = new FileInputStream(new File("../src/KeyStore.si027")); 
+		
+		//Alias from set up in KeyStore file
+		String alias = "si027";
+		
+		//Get the instance of keyStore
+		KeyStore kstore = KeyStore.getInstance("PKCS12"); 
+		
+		//verify password and load KeyStore file
+		kstore.load(keyStorefile, "si027marcos&rafael".toCharArray()); 
+		
+		//Get the private key 
+		Key key = kstore.getKey(alias, "si027marcos&rafael".toCharArray()); 
+		
+		//turn key in instance of private key
+		PrivateKey privatekey = (PrivateKey) key; 
+		
+		//Encrypted digital assign
+		signature.initSign(privatekey); 		
+		
+		return signature;
+		
+	}
+	
+	private void cipherFile(String fileName, ObjectOutputStream outStream) throws NoSuchAlgorithmException, NoSuchPaddingException, IOException, InvalidKeyException, UnrecoverableKeyException, KeyStoreException, CertificateException, SignatureException {
 		
 	    KeyGenerator kg = KeyGenerator.getInstance("AES");
 	    kg.init(128);
@@ -59,15 +90,20 @@ public class CommandE {
 	    CipherOutputStream cos = new CipherOutputStream(fos, c);
 
 	    int totalFileLength = fis.available();
-		byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)];
+		byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)]; 
+		
+		Signature signature = assignFile();
 		
 	    int i = fis.read(dataToBytes);
 	    while (i != -1) {
+	    	signature.update(dataToBytes,0,i);
 	        cos.write(dataToBytes, 0, i);
 	        i = fis.read(dataToBytes);
 	    }
 	    cos.close();
 	    fis.close();
+	    
+	    outStream.writeObject(signature.sign());
 
 	    byte[] keyEncoded = key.getEncoded();
 	    FileOutputStream kos = new FileOutputStream(fileName + ".key");
@@ -104,23 +140,28 @@ public class CommandE {
     	//iniciar da cifra no wrap mode com a pub key
     	c.init(Cipher.WRAP_MODE, pubkey);
     	
+    	File fKey = new File(fileName + ".key");
+    	
     	//ler a chave
-    	FileInputStream fis = new FileInputStream(fileName + ".key");
+    	FileInputStream fis = new FileInputStream(fKey);
     	
     	//ler o conteudo dos bytes
     	byte[] AESkey = new byte[fis.available()]; 
     	int i = fis.read(AESkey); //NÃO FOI USADO
     	fis.close();
+    	fKey.delete();
     	
     	SecretKey keyAES = new SecretKeySpec(AESkey, "AES");
     	
     	byte[] wrappedKey = c.wrap(keyAES);	
     	
-    	FileOutputStream fos = new FileOutputStream(fileName + ".chave_secreta");
+    	FileOutputStream fos = new FileOutputStream(fileName + ".keykey");
     	
     	fos.write(wrappedKey); 
     	
     	fos.close();
+    	
+    	
 	}
 	
 	public void sendToServer() throws UnknownHostException, IOException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, SignatureException, UnrecoverableKeyException, KeyStoreException, CertificateException, IllegalBlockSizeException, BadPaddingException, ClassNotFoundException {
@@ -146,8 +187,8 @@ public class CommandE {
 				Boolean fileExistServer = (Boolean) inStream.readObject();
 				
 				if(!fileExistServer) {
-		
-					cipherFile(fileName); 
+					
+					cipherFile(fileName,outStream); 
 					cipherKey(fileName);
 			
 					FileInputStream fileInStream = new FileInputStream(fileName + ".seguro");
@@ -173,21 +214,17 @@ public class CommandE {
 					}
 					fileInStream.close(); 
 					
-					FileInputStream fileInStreamkey = new FileInputStream(fileName + ".chave_secreta");  
+					File fileKeyCiph = new File(fileName + ".keykey");
+					
+					FileInputStream fileInStreamkey = new FileInputStream(fileKeyCiph);  
 					
 					outStream.writeObject(fileInStreamkey.readAllBytes());
 					
 					fileInStreamkey.close();
+					fileKeyCiph.delete();
 					
 					System.out.println("The file " + fileName + " have been sent correctly.");
 					
-					/*File fCif = new File(fileName + ".seguro");
-			        File fKey = new File(fileName + ".key");
-			        File fKeyCif = new File(fileName + ".chave_secreta");
-			        
-			        fCif.delete();
-			        fKey.delete();
-			        fKeyCif.delete();*/
 				}
 				else {
 					System.err.println("The file " + fileName + " already exist in server.");

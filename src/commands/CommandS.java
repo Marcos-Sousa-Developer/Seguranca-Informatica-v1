@@ -124,7 +124,7 @@ public class CommandS {
 					//read files chunk 
 					while(contentLength != -1 ) {
 						//Hash the data
-						signature.update(dataToBytes);
+						signature.update(dataToBytes,0,contentLength);
 						//send data to server
 						outStream.write(dataToBytes,0,contentLength);
 						//continue to read fileInStream

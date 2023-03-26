@@ -236,6 +236,12 @@ public class ServerThread extends Thread {
 		
 					FileOutputStream out = new FileOutputStream(fileName + ".seguro");
 					
+					FileOutputStream outSignature = new FileOutputStream(fileName + ".assinatura"); 
+					
+					outSignature.write((byte[]) inStream.readObject()); 
+					
+					outSignature.close();
+					
 					int totalFileLength = (int) inStream.readObject();
 			
 					//byte array for file
@@ -246,7 +252,7 @@ public class ServerThread extends Thread {
 					
 					while(contentLength > 0  &&  totalFileLength > 0) { 
 						
-						if(contentLength >= totalFileLength) {
+						if(totalFileLength >= contentLength) {
 							out.write(dataToBytes,0,contentLength);
 						} 
 						
@@ -266,6 +272,9 @@ public class ServerThread extends Thread {
 					outKey.write((byte[]) inStream.readObject()); 
 					
 					outKey.close();
+					
+					
+					
 				} else {
 					System.out.println("The file " + fileName + " already exist in server.");
 				}
@@ -280,31 +289,25 @@ public class ServerThread extends Thread {
 		int numbersOfFiles = (int) inStream.readObject();
 				
 		for (int i = 0; i < numbersOfFiles; i++) {
-
+			
 			String fileName = (String) inStream.readObject(); 
-							
+			
+			System.out.println(i);
+			
 			File fileToReadSign = new File(fileName + ".assinado");
-			
-			if(fileToReadSign.exists()){
-				
+			if(fileToReadSign.exists()){				
 				sendToClient(outStream, "-s", fileToReadSign, fileName);
-			
 			}
 			
 			File fileToReadCif = new File(fileName + ".cifrado");
-			
 			if(fileToReadCif.exists()){
-				
 				sendToClient(outStream, "-c", fileToReadCif, fileName);
-			
 			}
 			
 			File fileToReadSecure = new File(fileName + ".seguro");
-			
 			if(fileToReadSecure.exists()){ 
-				
 				sendToClient(outStream, "-e", fileToReadSecure, fileName);
-			
+				
 			}
 		}				
 	}
@@ -312,57 +315,43 @@ public class ServerThread extends Thread {
 	private void sendToClient(ObjectOutputStream outStream, String option, File fileToRead, String fileName) throws IOException {
 		
 		outStream.writeObject(option); 
-				
+						
 		if(option.equals("-c")) {
-			
 			FileInputStream fileInStreamSecretKey = new FileInputStream(fileName + ".chave_secreta"); 
-			
 			outStream.write(fileInStreamSecretKey.readAllBytes());
-			
+			fileInStreamSecretKey.close();
+		} 
+		
+		else if (option.equals("-s")) {
+			FileInputStream fileInStreamSignature = new FileInputStream(fileName + ".assinatura"); 
+			outStream.write(fileInStreamSignature.readAllBytes()); 
+			fileInStreamSignature.close();
+		}
+		
+		else {
+			FileInputStream fileInStreamSecretKey = new FileInputStream(fileName + ".chave_secreta"); 
+			outStream.write(fileInStreamSecretKey.readAllBytes());
 			fileInStreamSecretKey.close();
 			
-		} 
-		else if (option.equals("-s")) {
-			
 			FileInputStream fileInStreamSignature = new FileInputStream(fileName + ".assinatura"); 
-			
 			outStream.write(fileInStreamSignature.readAllBytes()); 
-			
 			fileInStreamSignature.close();
-			
 		}
-		else {
-			//FileInputStream fileInStreamSignature = new FileInputStream(fileName + ".assinatura");
-			FileInputStream fileInStreamKey = new FileInputStream(fileName + ".chave_secreta");
-			
-			//outStream.write(fileInStreamSignature.readAllBytes());
-			outStream.write(fileInStreamKey.readAllBytes());
-			
-			//fileInStreamSignature.close();
-			fileInStreamKey.close();
-			
-		}
-
+	
 		FileInputStream fileInStream = new FileInputStream(fileToRead); 
 				
 		int totalFileLength = fileInStream.available();
 		
 		outStream.writeObject(totalFileLength);
 
-		byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)];
+		byte[] dataToBytes = new byte[1024];
 		
-		int contentLength = fileInStream.read(dataToBytes); 
-						
-		while(contentLength > 0) {
-			
-			outStream.write(dataToBytes,0,contentLength);
-			
+		int contentLength = fileInStream.read(dataToBytes);  
+								
+		while(contentLength != -1) {
+			outStream.write(dataToBytes,0,contentLength); 
+			outStream.flush();						
 			contentLength = fileInStream.read(dataToBytes);
 		}
-		
-		fileInStream.close();
-	
-	
 	}
-	
 }

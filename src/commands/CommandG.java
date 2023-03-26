@@ -43,7 +43,7 @@ public class CommandG {
 		this.files = files;
 	}
 	
-	private void initVerifySign(byte[] signatureInByte, ObjectInputStream inStream, FileOutputStream fileOutput) throws NoSuchAlgorithmException, CertificateException, IOException, KeyStoreException, InvalidKeyException, UnrecoverableKeyException, ClassNotFoundException, SignatureException {
+	private void initVerifySign(byte[] signatureInByte, FileInputStream fileToVerify) throws NoSuchAlgorithmException, CertificateException, IOException, KeyStoreException, InvalidKeyException, UnrecoverableKeyException, ClassNotFoundException, SignatureException {
 		
 		Signature s = Signature.getInstance("SHA256withRSA");
 		
@@ -59,27 +59,18 @@ public class CommandG {
 		
 		s.initVerify(publicKey);
 		
-		int totalFileLength = (int) inStream.readObject();
+		int totalFileLength =  fileToVerify.available();
 		
 		byte[] bufferData = new byte[Math.min(totalFileLength, 1024)];
 										
-		int contentFileLength = inStream.read(bufferData);
-										
-		while (contentFileLength > 0 && totalFileLength > 0) {
-			if (totalFileLength >= contentFileLength) {
-				s.update(bufferData, 0, contentFileLength);
-				fileOutput.write(bufferData, 0, contentFileLength);
-				
-			} else {
-				s.update(bufferData, 0, totalFileLength);
-				fileOutput.write(bufferData, 0, totalFileLength);
-				
-			}
-			totalFileLength -= contentFileLength;
-			contentFileLength = inStream.read(bufferData);
+		int contentFileLength = fileToVerify.read(bufferData);
+														
+		while (contentFileLength != -1) {
+			s.update(bufferData,0,contentFileLength);
+			contentFileLength = fileToVerify.read(bufferData);
 		}
-		fileOutput.close();
-		
+		fileToVerify.close(); 
+				
 		boolean bool = s.verify(signatureInByte);
     	
     	if(bool) {
@@ -118,7 +109,7 @@ public class CommandG {
 		
 		int totalFileLength = (int) inStream.readObject();
 		
-		byte[] bufferData = new byte[Math.min(totalFileLength, 1024)];
+		byte[] bufferData = new byte[1024];
 										
 		int contentFileLength = inStream.read(bufferData);
 										
@@ -131,57 +122,19 @@ public class CommandG {
 				
 			}
 			totalFileLength -= contentFileLength;
-			contentFileLength = inStream.read(bufferData);
+			
+			if(totalFileLength > 0) {
+				contentFileLength = inStream.read(bufferData);
+			}
 		}
+		
+		cipherOut.flush();
 		cipherOut.close();
 		fileOutput.close();
+		
 		System.out.println("Terminou a decifra");
 	}
-	
-	private void decryptAndVerifySignFile(byte[] signatureInByte, File fileToRead) throws UnrecoverableKeyException, InvalidKeyException, KeyStoreException, NoSuchAlgorithmException, CertificateException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException, IOException, ClassNotFoundException, SignatureException {
 		
-		Signature s = Signature.getInstance("SHA256withRSA");
-		
-		FileInputStream kfile = new FileInputStream(new File("../src/KeyStore.si027"));
-		KeyStore keystore = KeyStore.getInstance("PKCS12");
-		keystore.load(kfile, "si027marcos&rafael".toCharArray()); 
-		Key key = keystore.getKey("si027", "si027marcos&rafael".toCharArray());  
-
-		Certificate cert = keystore.getCertificate("si027");
-		
-		PublicKey publicKey = cert.getPublicKey(); 	
-		
-		s.initVerify(publicKey);
-		
-		FileInputStream fileInStream = new FileInputStream(fileToRead);
-		
-		int totalFileLength = (int) fileInStream.available();
-		
-		byte[] bufferData = new byte[Math.min(totalFileLength, 1024)];
-										
-		int contentFileLength = fileInStream.read(bufferData);
-										
-		while (contentFileLength > 0 && totalFileLength > 0) {
-			if (totalFileLength >= contentFileLength) {
-				s.update(bufferData, 0, contentFileLength);
-			} else {
-				s.update(bufferData, 0, totalFileLength);
-			}
-			totalFileLength -= contentFileLength;
-			contentFileLength = fileInStream.read(bufferData);
-		}
-		
-		fileInStream.close();
-		
-		boolean bool = s.verify(signatureInByte);
-    	
-    	if(bool) {
-            System.out.println("Signature verified");   
-         } else {
-            System.out.println("Signature failed");
-         }
-	}
-	
 	public void sendToServer() throws UnknownHostException, IOException, ClassNotFoundException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, UnrecoverableKeyException, KeyStoreException, CertificateException, IllegalBlockSizeException, SignatureException, BadPaddingException {
 
 		Socket socket = new Socket(this.ip, this.port);
@@ -194,62 +147,58 @@ public class CommandG {
 		
 		for (String fileName : this.files) {
 			
+			System.out.println(fileName);
+			
 			outStream.writeObject(fileName);
 			
 			String option = (String) inStream.readObject();
 			
 			if(option.equals("-c")) {
-				
 				byte[] secretKeyInByte = new byte[256];
 				inStream.read(secretKeyInByte);
-
 				decryptFile(secretKeyInByte, inStream, new FileOutputStream(fileName));
 			} 
+			
 			else if (option.equals("-s")) {
+				
+				byte[] signatureInByte = new byte[256];
+				inStream.read(signatureInByte);
+				
+				FileOutputStream outFile = new FileOutputStream(fileName); 
+								
+				int totalFileLength = (int) inStream.readObject();
+				
+				byte[] bufferData = new byte[Math.min(totalFileLength, 1024)];
+												
+				int contentFileLength = inStream.read(bufferData);
+												
+				while (contentFileLength > 0 && totalFileLength > 0) {
+					if (totalFileLength >= contentFileLength) {
+						outFile.write(bufferData, 0, contentFileLength);
+					} else {
+						outFile.write(bufferData, 0, totalFileLength);
+					}
+					totalFileLength -= contentFileLength; 
+					
+					if(contentFileLength > 0 && totalFileLength > 0) {
+						contentFileLength = inStream.read(bufferData);
+					}
+				}
+				outFile.close(); 
+				initVerifySign(signatureInByte, new FileInputStream(fileName));
+				
+			}
+			
+			else {
+				byte[] secretKeyInByte = new byte[256];
+				inStream.read(secretKeyInByte);
 				
 				byte[] signatureInByte = new byte[256];
 				inStream.read(signatureInByte); 
 				
-				initVerifySign(signatureInByte, inStream, new FileOutputStream(fileName));
-			}
-			
-			else {
-				
-				byte[] secretKeyInByte = inStream.readAllBytes();
-				
-		    	FileInputStream kfile = new FileInputStream("KeyStore.si027");
-		    	KeyStore kstore = KeyStore.getInstance("PKCS12");
-		    	
-		    	kstore.load(kfile, "si027marcos&rafael".toCharArray()); 
-		    	    	
-		    	Key privatekey = kstore.getKey("si027", "si027marcos&rafael".toCharArray()); 
-		    	
-		    	Cipher cRSA = Cipher.getInstance("RSA");
+				decryptFile(secretKeyInByte, inStream, new FileOutputStream(fileName)); 
+				initVerifySign(signatureInByte, new FileInputStream(fileName));
 
-				cRSA.init(Cipher.UNWRAP_MODE, privatekey);
-				
-		    	Key unwrapkey = cRSA.unwrap(secretKeyInByte, "AES",  Cipher.SECRET_KEY);
-		    	
-		    	Cipher c = Cipher.getInstance("AES");
-
-				c.init(Cipher.DECRYPT_MODE, unwrapkey);
-
-				FileInputStream fis = new FileInputStream(fileName + ".seguro");
-				FileOutputStream fos = new FileOutputStream(fileName);
-				CipherOutputStream cos = new CipherOutputStream(fos, c);
-
-				int totalFileLength = fis.available();
-				byte[] dataToBytes = new byte[Math.min(totalFileLength, 1024)];
-				
-				int contentFileLength = fis.read(dataToBytes);
-				while (contentFileLength > 0 && totalFileLength > 0) {
-					cos.write(dataToBytes, 0, contentFileLength);
-					totalFileLength -= contentFileLength;
-					contentFileLength = fis.read(dataToBytes);
-				}
-				cos.close();
-				fis.close();
-		
 			}
 		}
 	}
