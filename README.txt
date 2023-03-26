@@ -13,3 +13,12 @@ Para geral o executáveis, se necessário
 	
 	-> javac myCloudServer.java
 	-> javac myCloud.java
+
+Notas:
+
+Os ficheiros recebidos pelo server através dos comandos {-c||-s||-e} irão para a pasta cloud.
+	- cifrados, assinados, seguros -> cloud/files
+	- chaves secretas -> cloud/keys
+	- assinaturas -> cloud/signatures
+
+Os ficheiros recebidos pelo cliente através do comando -g irão para a pasta receivedFiles.
