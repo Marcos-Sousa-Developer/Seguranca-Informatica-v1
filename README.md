@@ -21,7 +21,7 @@ O trabalho consiste no desenvolvimento de dois programas:
 A aplicação é distribuída de forma que o servidor fica numa máquina e o utilizador pode usar clientes em máquinas diferentes na Internet. 
 
 # Instruções   
-* 1ºPasso: *Ir para a pasta src/*
+* 1ºPasso: **Ir para a pasta src/**
 
 * 2ºPasso: Correr o servidor 
 
